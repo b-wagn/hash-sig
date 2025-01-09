@@ -1,4 +1,4 @@
-use crate::symmetric::message_hash::MessageHash;
+use crate::{symmetric::message_hash::MessageHash, MESSAGE_LENGTH};
 
 use super::IncomparableEncoding;
 
@@ -45,19 +45,21 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
 
     fn encode(
         parameter: &Self::Parameter,
-        message: &[u8; 64],
+        message: &[u8; MESSAGE_LENGTH],
         randomness: &Self::Randomness,
         epoch: u32,
-    ) -> Result<Vec<u32>, super::EncodingError> {
+    ) -> Result<Vec<u16>, super::EncodingError> {
         // apply the message hash first to get chunks
         let chunks = MH::apply(parameter, epoch, randomness, message);
+        let chunks_u16: Vec<u16> = chunks.iter().map(|&x| x as u16).collect();
         let chunks_u32: Vec<u32> = chunks.iter().map(|&x| x as u32).collect();
+
         let sum: u32 = chunks_u32.iter().sum();
         // only output the chunks sum to the target sum
         return if sum as usize != Self::TARGET_SUM {
             Err(())
         } else {
-            Ok(chunks_u32)
+            Ok(chunks_u16)
         };
     }
 }

@@ -53,7 +53,7 @@ impl<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize> IncomparableEncoding
         message: &[u8; MESSAGE_LENGTH],
         randomness: &Self::Randomness,
         epoch: u32,
-    ) -> Result<Vec<u32>, super::EncodingError> {
+    ) -> Result<Vec<u16>, super::EncodingError> {
         // apply the message hash to get chunks
         let chunks_message = MH::apply(parameter, epoch, randomness, message);
 
@@ -74,7 +74,7 @@ impl<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize> IncomparableEncoding
         let mut chunks = Vec::with_capacity(chunks_message.len() + NUM_CHUNKS_CHECKSUM);
         chunks.extend_from_slice(&chunks_message);
         chunks.extend_from_slice(&chunks_checksum[..NUM_CHUNKS_CHECKSUM]);
-        let chunks_u32: Vec<u32> = chunks.iter().map(|&x| x as u32).collect();
-        Ok(chunks_u32)
+        let chunks_u16: Vec<u16> = chunks.iter().map(|&x| x as u16).collect();
+        Ok(chunks_u16)
     }
 }

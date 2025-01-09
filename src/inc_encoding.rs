@@ -41,7 +41,7 @@ pub trait IncomparableEncoding {
         message: &[u8; MESSAGE_LENGTH],
         randomness: &Self::Randomness,
         epoch: u32,
-    ) -> Result<Vec<u32>, EncodingError>;
+    ) -> Result<Vec<u16>, EncodingError>;
 }
 
 pub mod basic_winternitz;

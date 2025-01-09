@@ -30,8 +30,13 @@ pub trait MessageHash {
         randomness: &Self::Randomness,
         message: &[u8; MESSAGE_LENGTH],
     ) -> Vec<u8>;
+
+    /// Check that the parameters are sound and internally consistent
+    /// Panics if smth is wrong
+    fn consistency_check();
 }
 
+pub mod poseidon;
 pub mod sha;
 
 /// Isolates a chunk of bits from a byte based on the specified chunk index and chunk size.

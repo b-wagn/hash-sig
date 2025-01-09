@@ -110,7 +110,7 @@ where
                 let end = chain::<TH>(
                     &parameter,
                     epoch as u32,
-                    chain_index as u32,
+                    chain_index as u16,
                     0,
                     chain_length - 1,
                     &start,
@@ -147,7 +147,7 @@ where
         rng: &mut R,
         sk: &Self::SecretKey,
         epoch: u32,
-        message: &[u8; 64],
+        message: &[u8; MESSAGE_LENGTH],
     ) -> Result<Self::Signature, SigningError> {
         // check first that we have the correct message length
         if message.len() != MESSAGE_LENGTH {
@@ -205,7 +205,7 @@ where
             let hash_in_chain = chain::<TH>(
                 &sk.parameter,
                 epoch,
-                chain_index as u32,
+                chain_index as u16,
                 0,
                 steps as usize,
                 &start,
@@ -254,7 +254,7 @@ where
             let end = chain::<TH>(
                 &pk.parameter,
                 epoch,
-                chain_index as u32,
+                chain_index as u16,
                 start_pos_in_chain,
                 steps as usize,
                 start,

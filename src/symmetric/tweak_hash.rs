@@ -29,7 +29,7 @@ pub trait TweakableHash {
 
     /// Returns a tweak to be used in chains.
     /// Note: this is assumed to be distinct from the outputs of tree_tweak
-    fn chain_tweak(epoch: u32, chain_index: u32, pos_in_chain: u32) -> Self::Tweak;
+    fn chain_tweak(epoch: u32, chain_index: u16, pos_in_chain: u16) -> Self::Tweak;
 
     /// Applies the tweakable hash to parameter, tweak, and message.
     fn apply(
@@ -49,8 +49,8 @@ pub trait TweakableHash {
 pub(crate) fn chain<TH: TweakableHash>(
     parameter: &TH::Parameter,
     epoch: u32,
-    chain_index: u32,
-    start_pos_in_chain: u32,
+    chain_index: u16,
+    start_pos_in_chain: u16,
     steps: usize,
     start: &TH::Domain,
 ) -> TH::Domain {
@@ -59,7 +59,7 @@ pub(crate) fn chain<TH: TweakableHash>(
 
     // otherwise, walk the right amount of steps
     for j in 0..steps {
-        let tweak = TH::chain_tweak(epoch, chain_index, start_pos_in_chain + (j as u32) + 1);
+        let tweak = TH::chain_tweak(epoch, chain_index, start_pos_in_chain + (j as u16) + 1);
         current = TH::apply(parameter, &tweak, &[current]);
     }
 
@@ -67,6 +67,7 @@ pub(crate) fn chain<TH: TweakableHash>(
     current
 }
 
+pub mod poseidon;
 pub mod sha;
 
 #[cfg(test)]
@@ -104,7 +105,7 @@ mod tests {
                 &parameter,
                 epoch,
                 chain_index,
-                steps_a as u32,
+                steps_a as u16,
                 steps_b,
                 &intermediate,
             );
