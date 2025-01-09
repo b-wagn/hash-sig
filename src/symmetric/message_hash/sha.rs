@@ -42,12 +42,12 @@ impl<
         epoch: u32,
         randomness: &Self::Randomness,
         message: &[u8; MESSAGE_LENGTH],
-    ) -> Vec<u8> { 
+    ) -> Vec<u8> {
         let mut hasher = Sha3_256::new();
 
         // first add randomness
         hasher.update(randomness);
-        
+
         // now add the parameter
         hasher.update(parameter);
 
@@ -112,9 +112,9 @@ mod tests {
 
         let epoch = 13;
         let randomness = ShaMessageHash128x3::rand(&mut rng);
- 
+
         ShaMessageHash128x3::consistency_check();
-        ShaMessageHash128x3::apply(&parameter, epoch, &randomness, &message); 
+        ShaMessageHash128x3::apply(&parameter, epoch, &randomness, &message);
     }
 
     #[test]
@@ -129,8 +129,8 @@ mod tests {
 
         let epoch = 13;
         let randomness = ShaMessageHash192x3::rand(&mut rng);
- 
+
         ShaMessageHash192x3::consistency_check();
-        ShaMessageHash192x3::apply(&parameter, epoch, &randomness, &message); 
+        ShaMessageHash192x3::apply(&parameter, epoch, &randomness, &message);
     }
 }
