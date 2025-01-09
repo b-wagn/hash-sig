@@ -44,8 +44,10 @@ impl<
         message: &[u8; MESSAGE_LENGTH],
     ) -> Vec<u8> { 
         let mut hasher = Sha3_256::new();
- 
 
+        // first add randomness
+        hasher.update(randomness);
+        
         // now add the parameter
         hasher.update(parameter);
 
