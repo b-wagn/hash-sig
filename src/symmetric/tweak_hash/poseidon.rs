@@ -2,7 +2,7 @@ use zkhash::ark_ff::MontConfig;
 use zkhash::ark_ff::One;
 use zkhash::ark_ff::UniformRand;
 use zkhash::ark_ff::Zero;
-use zkhash::poseidon2::poseidon2_instance_babybear::POSEIDON2_BABYBEAR_24_PARAMS;
+use zkhash::poseidon2::poseidon2_instance_babybear::{POSEIDON2_BABYBEAR_16_PARAMS,POSEIDON2_BABYBEAR_24_PARAMS};
 use zkhash::{
     fields::babybear::{FpBabyBear, FqConfig},
     poseidon2::poseidon2::Poseidon2,
@@ -277,6 +277,7 @@ impl<
 
         let l = message.len();
         let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
+        let instance_short = Poseidon2::new(&POSEIDON2_BABYBEAR_16_PARAMS);
         if l == 1 {
             // we compress parameter, tweak, message
             let message_unpacked = message[0];
@@ -287,7 +288,7 @@ impl<
                 .chain(message_unpacked.iter())
                 .cloned()
                 .collect();
-            return poseidon_compress::<HASH_LEN>(&instance, &combined_input);
+            return poseidon_compress::<HASH_LEN>(&instance_short, &combined_input);
         }
         if l == 2 {
             // we compress parameter, tweak, message (now containing two parts)

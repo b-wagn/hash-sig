@@ -87,7 +87,7 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
     }
  
     fn chain_tweak(epoch: u32, chain_index: u16, pos_in_chain: u16) -> Self::Tweak {
-        Sha256Tweak::ChainTweak { 
+        ShaTweak::ChainTweak { 
             epoch,
             chain_index,
             pos_in_chain,
