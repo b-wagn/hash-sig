@@ -37,6 +37,9 @@ pub trait TweakableHash {
         tweak: &Self::Tweak,
         message: &[Self::Domain],
     ) -> Self::Domain;
+
+    /// Checks that parameter lengths are consistent with the inner hash function
+    fn consistency_check() -> bool;
 }
 
 /// Function implementing hash chains, implemented over a tweakable hash function

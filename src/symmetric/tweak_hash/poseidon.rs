@@ -2,7 +2,9 @@ use zkhash::ark_ff::MontConfig;
 use zkhash::ark_ff::One;
 use zkhash::ark_ff::UniformRand;
 use zkhash::ark_ff::Zero;
-use zkhash::poseidon2::poseidon2_instance_babybear::{POSEIDON2_BABYBEAR_16_PARAMS,POSEIDON2_BABYBEAR_24_PARAMS};
+use zkhash::poseidon2::poseidon2_instance_babybear::{
+    POSEIDON2_BABYBEAR_16_PARAMS, POSEIDON2_BABYBEAR_24_PARAMS,
+};
 use zkhash::{
     fields::babybear::{FpBabyBear, FqConfig},
     poseidon2::poseidon2::Poseidon2,
@@ -12,7 +14,6 @@ use num_bigint::BigUint;
 
 use super::TweakableHash;
 
-// TODO: Check if we want to use this field or a different one
 type F = FpBabyBear;
 
 /// Enum to implement tweaks.
@@ -36,8 +37,6 @@ pub enum PoseidonTweak<
 impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SIZE: usize>
     PoseidonTweak<LOG_LIFETIME, CEIL_LOG_NUM_CHAINS, CHUNK_SIZE>
 {
-    //const TWEAK_LEN: usize = 6;
-
     fn to_field_elements<const TWEAK_LEN: usize>(&self) -> Vec<F> {
         // we need to convert from integers to field elements,
         // Note: taking into account the constants
@@ -77,7 +76,7 @@ impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SI
     }
 }
 
-/// Function to first pad input to appropriate length and
+/// Function to first pad input to apopropriate length and
 /// then apply the Poseidon permutation.
 fn poseidon_padded_permute(instance: &Poseidon2<F>, input: &[F]) -> Vec<F> {
     assert!(
@@ -116,23 +115,12 @@ pub fn poseidon_compress<const OUT_LEN: usize>(
 }
 
 ///Construct a domain separator based on @params array of usize treated as u32.
-///It should fit the Poseidon instance
+///Hashes @params with a compression mode
 
 pub fn poseidon_safe_domain_separator<const OUT_LEN: usize>(
     instance: &Poseidon2<F>,
     params: &[usize],
 ) -> [F; OUT_LEN] {
-    let state_bits = f64::log2(
-        BigUint::from(FqConfig::MODULUS)
-            .to_string()
-            .parse()
-            .unwrap(),
-    ) * f64::from(instance.get_t() as u32);
-    assert!(
-        state_bits >= f64::from((params.len() * 32) as u32),
-        "Parameter mismatch: not enough field elements to hash the domain separator"
-    );
-
     let domain_uint = params.iter().fold(BigUint::ZERO, |acc, &item| {
         acc * BigUint::from(((1 as u64) << 32) as u64) + (item as u32)
     }); //collect the vector into a number
@@ -189,7 +177,7 @@ pub fn poseidon_sponge<const OUT_LEN: usize>(
 
 /// A tweakable hash function implemented using Poseidon2
 ///
-/// Note: HASH_LEN and PARAMETER_LEN must be given in
+/// Note: HASH_LEN,TWEAK_LEN, CAPACITY, and PARAMETER_LEN must be given in
 /// the unit "number of field elements".
 pub struct PoseidonTweakHash<
     const LOG_LIFETIME: usize,
@@ -260,16 +248,33 @@ impl<
         }
     }
 
+    fn consistency_check() -> bool {
+        assert!(
+            PARAMETER_LEN + TWEAK_LEN + HASH_LEN <= 16,
+            "Poseidon Tweak Chain Hash: Input lengths too large for Poseidon instance"
+        );
+        assert!(
+            PARAMETER_LEN + TWEAK_LEN + 2 * HASH_LEN <= 24,
+            "Poseidon Tweak Tree Hash: Input lengths too large for Poseidon instance"
+        );
+        let state_bits = f64::log2(
+            BigUint::from(FqConfig::MODULUS)
+                .to_string()
+                .parse()
+                .unwrap(),
+        ) * f64::from(24 as u32);
+        assert!(
+            state_bits >= f64::from((crate::DOMAIN_PARAMETERS_LENGTH * 32) as u32),
+            "Parameter mismatch: not enough field elements to hash the domain separator"
+        );
+        true
+    }
+
     fn apply(
         parameter: &Self::Parameter,
         tweak: &Self::Tweak,
         message: &[Self::Domain],
     ) -> Self::Domain {
-        assert!(
-            PARAMETER_LEN + TWEAK_LEN + 2 * HASH_LEN <= 24,
-            "Poseidon Tweak Hash: Input lengths too large for Poseidon instance"
-        );
-
         // we are in one of three cases:
         // (1) hashing within chains. We use compression mode.
         // (2) hashing two siblings in the tree. We use compression mode.
@@ -312,7 +317,8 @@ impl<
                 .chain(message.iter().flat_map(|sub_arr| sub_arr.iter()))
                 .cloned()
                 .collect();
-            let lengths = [PARAMETER_LEN, TWEAK_LEN, NUM_CHUNKS, HASH_LEN];
+            let lengths: [usize; crate::DOMAIN_PARAMETERS_LENGTH] =
+                [PARAMETER_LEN, TWEAK_LEN, NUM_CHUNKS, HASH_LEN];
             let safe_input = poseidon_safe_domain_separator::<CAPACITY>(&instance, &lengths);
             let capacity_value = poseidon_compress::<CAPACITY>(&instance, &safe_input);
             let res = poseidon_sponge(&instance, &capacity_value, &combined_input);

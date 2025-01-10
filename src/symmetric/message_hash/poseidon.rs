@@ -46,6 +46,7 @@ fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
 /// Function to decode a vector of field elements into
 /// a vector of NUM_CHUNKS many chunks. One chunk is
 /// between 0 and 2^CHUNK_SIZE - 1 (inclusive).
+/// CHUNK_SIZE up to 8 (inclusive) is supperted
 fn decode_to_chunks<const NUM_CHUNKS: usize, const CHUNK_SIZE: usize, const HASH_LEN_FE: usize>(
     field_elements: &[F; HASH_LEN_FE],
 ) -> Vec<u8> {
@@ -53,13 +54,12 @@ fn decode_to_chunks<const NUM_CHUNKS: usize, const CHUNK_SIZE: usize, const HASH
         acc * BigUint::from(FqConfig::MODULUS) + BigUint::from(item.into_bigint())
     }); //collect the vector into a number
 
-    let chunk_len = (1 << CHUNK_SIZE) as u8;
+    let max_chunk_len = (1 << CHUNK_SIZE) as u16;
 
     let mut hash_chunked: [u8; NUM_CHUNKS] = [0 as u8; NUM_CHUNKS];
     hash_chunked.iter_mut().fold(hash_uint, |acc, item| {
-        let tmp = acc.clone() % chunk_len;
-        *item = tmp.to_bytes_le()[0] % chunk_len;
-        (acc - tmp) / chunk_len
+        *item = (acc.clone() % max_chunk_len).to_bytes_be()[0];
+        (acc - *item) / max_chunk_len
     }); //interpreting the number base-p
     Vec::from(hash_chunked)
 }
@@ -126,8 +126,8 @@ impl<
     ) -> Vec<u8> {
         // We need a Poseidon instance
 
-        //This block should be changed if we decide to support other Poseidon instances
-        //Currently we use state of width 24 and pad with 0s
+        // This block should be changed if we decide to support other Poseidon instances
+        // Currently we use state of width 24 and pad with 0s
         assert!(PARAMETER_LEN + TWEAK_LEN_FE + RAND_LEN + MSG_LEN_FE <= 24);
         let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
 
@@ -150,7 +150,7 @@ impl<
     }
 
     fn consistency_check() {
-        //message check
+        // message check
         let msg_fe_bits = f64::log2(
             BigUint::from(FqConfig::MODULUS)
                 .to_string()
@@ -162,7 +162,7 @@ impl<
             "Poseidon Message hash. Parameter mismatch: not enough field elements to encode the message"
         );
 
-        //tweak check
+        // tweak check
         let tweak_fe_bits = f64::log2(
             BigUint::from(FqConfig::MODULUS)
                 .to_string()

@@ -99,15 +99,6 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
         tweak: &Self::Tweak,
         message: &[Self::Domain],
     ) -> Self::Domain {
-        assert!(
-            PARAMETER_LEN < 256 / 8,
-            "SHA Tweak Hash: Parameter Length must be less than 256 bit"
-        );
-        assert!(
-            HASH_LEN < 256 / 8,
-            "SHA Tweak Hash: Hash Length must be less than 256 bit"
-        );
-
         let mut hasher = Sha3_256::new();
 
         // add the parameter and tweak
@@ -122,6 +113,18 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
         // finalize the hash, and take as many bytes as we need
         let result = hasher.finalize();
         result[0..HASH_LEN].try_into().unwrap()
+    }
+
+    fn consistency_check() -> bool {
+        assert!(
+            PARAMETER_LEN < 256 / 8,
+            "SHA Tweak Hash: Parameter Length must be less than 256 bit"
+        );
+        assert!(
+            HASH_LEN < 256 / 8,
+            "SHA Tweak Hash: Hash Length must be less than 256 bit"
+        );
+        true
     }
 }
 
@@ -139,6 +142,8 @@ mod tests {
     #[test]
     fn test_apply_128_128() {
         let mut rng = thread_rng();
+
+        ShaTweak128128::consistency_check();
 
         // test that nothing is panicking
         let parameter = ShaTweak128128::rand_parameter(&mut rng);
@@ -158,6 +163,8 @@ mod tests {
     #[test]
     fn test_apply_128_192() {
         let mut rng = thread_rng();
+
+        ShaTweak128192::consistency_check();
 
         // test that nothing is panicking
         let parameter = ShaTweak128192::rand_parameter(&mut rng);
