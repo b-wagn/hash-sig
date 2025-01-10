@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rand = "0.8.5" 
+rand = "0.8.5"
 sha3 = "0.10.8"
 zkhash = { git = "https://github.com/HorizenLabs/poseidon2", branch = "main", package = "zkhash" }
-num-bigint = "0.4.6" 
+num-bigint = "0.4.6"
 
 [dev-dependencies]
 criterion = "0.4"

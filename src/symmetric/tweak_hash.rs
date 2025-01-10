@@ -38,8 +38,10 @@ pub trait TweakableHash {
         message: &[Self::Domain],
     ) -> Self::Domain;
 
-    /// Checks that parameter lengths are consistent with the inner hash function
-    fn consistency_check() -> bool;
+    /// Function to check internal consistency of any given parameters
+    /// For testing only, and expected to panic if something is wrong.
+    #[cfg(test)]
+    fn internal_consistency_check();
 }
 
 /// Function implementing hash chains, implemented over a tweakable hash function

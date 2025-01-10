@@ -6,8 +6,7 @@ pub mod lifetime_2_to_the_18 {
             inc_encoding::basic_winternitz::WinternitzEncoding,
             signature::generalized_xmss::GeneralizedXMSSSignatureScheme,
             symmetric::{
-                message_hash::sha::ShaMessageHash, prf::hashprf::ShaPRF,
-                tweak_hash::sha::ShaTweakHash,
+                message_hash::sha::ShaMessageHash, prf::sha::ShaPRF, tweak_hash::sha::ShaTweakHash,
             },
         };
 
@@ -66,8 +65,7 @@ pub mod lifetime_2_to_the_18 {
             inc_encoding::target_sum::TargetSumEncoding,
             signature::generalized_xmss::GeneralizedXMSSSignatureScheme,
             symmetric::{
-                message_hash::sha::ShaMessageHash, prf::hashprf::ShaPRF,
-                tweak_hash::sha::ShaTweakHash,
+                message_hash::sha::ShaMessageHash, prf::sha::ShaPRF, tweak_hash::sha::ShaTweakHash,
             },
         };
 
@@ -155,8 +153,7 @@ pub mod lifetime_2_to_the_20 {
             inc_encoding::basic_winternitz::WinternitzEncoding,
             signature::generalized_xmss::GeneralizedXMSSSignatureScheme,
             symmetric::{
-                message_hash::sha::ShaMessageHash, prf::hashprf::ShaPRF,
-                tweak_hash::sha::ShaTweakHash,
+                message_hash::sha::ShaMessageHash, prf::sha::ShaPRF, tweak_hash::sha::ShaTweakHash,
             },
         };
 
@@ -216,8 +213,7 @@ pub mod lifetime_2_to_the_20 {
             inc_encoding::target_sum::TargetSumEncoding,
             signature::generalized_xmss::GeneralizedXMSSSignatureScheme,
             symmetric::{
-                message_hash::sha::ShaMessageHash, prf::hashprf::ShaPRF,
-                tweak_hash::sha::ShaTweakHash,
+                message_hash::sha::ShaMessageHash, prf::sha::ShaPRF, tweak_hash::sha::ShaTweakHash,
             },
         };
 

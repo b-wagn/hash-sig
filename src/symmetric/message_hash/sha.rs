@@ -1,4 +1,6 @@
-use crate::{symmetric::message_hash::bytes_to_chunks, MESSAGE_LENGTH};
+use crate::{
+    symmetric::message_hash::bytes_to_chunks, MESSAGE_LENGTH, TWEAK_SEPARATOR_FOR_MESSAGE_HASH,
+};
 
 use super::MessageHash;
 
@@ -52,9 +54,8 @@ impl<
         hasher.update(parameter);
 
         // now add tweak (= domain separator + epoch)
-        // domain separater: this is a message hash tweak.
-        // So we start with a 0x02 byte.
-        hasher.update(&[0x02]);
+        // domain separator: this is a message hash tweak.
+        hasher.update(&[TWEAK_SEPARATOR_FOR_MESSAGE_HASH]);
         hasher.update(epoch.to_le_bytes());
 
         // now add the actual message to be hashed
@@ -68,22 +69,23 @@ impl<
         chunks
     }
 
-    fn consistency_check() {
+    #[cfg(test)]
+    fn internal_consistency_check() {
         assert!(
             PARAMETER_LEN < 256 / 8,
-            "SHA256-Message Hash: Parameter Length must be less than 256 bit"
+            "SHA Message Hash: Parameter Length must be less than 256 bit"
         );
         assert!(
             RAND_LEN < 256 / 8,
-            "SHA256-Message Hash: Randomness Length must be less than 256 bit"
+            "SHA Message Hash: Randomness Length must be less than 256 bit"
         );
         assert!(
             RAND_LEN > 0,
-            "SHA256-Message Hash: Randomness Length must be non-zero"
+            "SHA Message Hash: Randomness Length must be non-zero"
         );
         assert!(
             NUM_CHUNKS * CHUNK_SIZE < 256,
-            "SHA256-Message Hash: Hash Length (= NUM_CHUNKS * CHUNK_SIZE) must be less than 256 bit"
+            "SHA Message Hash: Hash Length (= NUM_CHUNKS * CHUNK_SIZE) must be less than 256 bit"
         );
     }
 }
@@ -113,7 +115,7 @@ mod tests {
         let epoch = 13;
         let randomness = ShaMessageHash128x3::rand(&mut rng);
 
-        ShaMessageHash128x3::consistency_check();
+        ShaMessageHash128x3::internal_consistency_check();
         ShaMessageHash128x3::apply(&parameter, epoch, &randomness, &message);
     }
 
@@ -130,7 +132,7 @@ mod tests {
         let epoch = 13;
         let randomness = ShaMessageHash192x3::rand(&mut rng);
 
-        ShaMessageHash192x3::consistency_check();
+        ShaMessageHash192x3::internal_consistency_check();
         ShaMessageHash192x3::apply(&parameter, epoch, &randomness, &message);
     }
 }

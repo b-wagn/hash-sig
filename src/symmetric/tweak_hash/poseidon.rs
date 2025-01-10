@@ -12,9 +12,14 @@ use zkhash::{
 
 use num_bigint::BigUint;
 
+use crate::TWEAK_SEPARATOR_FOR_CHAIN_HASH;
+use crate::TWEAK_SEPARATOR_FOR_TREE_HASH;
+
 use super::TweakableHash;
 
 type F = FpBabyBear;
+
+const DOMAIN_PARAMETERS_LENGTH: usize = 4;
 
 /// Enum to implement tweaks.
 pub enum PoseidonTweak<
@@ -45,6 +50,7 @@ impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SI
         // LOG_LIFETIME + CEIL_LOG_NUM_CHAINS + CHUNK_SIZE many
         // bits.
 
+        // we first represent the entire tweak as one big integer
         let tweak_bigint = match self {
             PoseidonTweak::TreeTweak {
                 level,
@@ -52,7 +58,7 @@ impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SI
             } => {
                 (BigUint::from(*level) << 40)
                     + (BigUint::from(*pos_in_level) << 8)
-                    + crate::TWEAK_SEPARATOR_FOR_TREE_HASH
+                    + TWEAK_SEPARATOR_FOR_TREE_HASH
             }
             PoseidonTweak::ChainTweak {
                 epoch,
@@ -62,21 +68,23 @@ impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SI
                 (BigUint::from(*epoch) << 40)
                     + (BigUint::from(*chain_index) << 24)
                     + (BigUint::from(*pos_in_chain) << 8)
-                    + crate::TWEAK_SEPARATOR_FOR_CHAIN_HASH
+                    + TWEAK_SEPARATOR_FOR_CHAIN_HASH
             }
             _ => BigUint::from(0 as u32),
         };
+
+        // now we interpret this integer in base-p to get field elements
         let mut tweak_fe: [F; TWEAK_LEN] = [F::zero(); TWEAK_LEN];
         tweak_fe.iter_mut().fold(tweak_bigint, |acc, item| {
             let tmp = acc.clone() % BigUint::from(FqConfig::MODULUS);
             *item = F::from(tmp.clone());
             (acc - tmp) / (BigUint::from(FqConfig::MODULUS))
-        }); //interpreting the number base-p
+        });
         tweak_fe.to_vec()
     }
 }
 
-/// Function to first pad input to apopropriate length and
+/// Function to first pad input to appropriate length and
 /// then apply the Poseidon permutation.
 fn poseidon_padded_permute(instance: &Poseidon2<F>, input: &[F]) -> Vec<F> {
     assert!(
@@ -105,8 +113,7 @@ pub fn poseidon_compress<const OUT_LEN: usize>(
 
     // first permute input
     let permuted_input = poseidon_padded_permute(instance, input);
-    // now, add them, but only for the positions
-    // we actually output.
+    // now, add them, but only for the positions we actually output.
     let mut output = [F::zero(); OUT_LEN];
     for i in 0..OUT_LEN {
         output[i] = permuted_input[i] + input[i];
@@ -114,30 +121,30 @@ pub fn poseidon_compress<const OUT_LEN: usize>(
     output
 }
 
-///Construct a domain separator based on @params array of usize treated as u32.
-///Hashes @params with a compression mode
-
+/// This function creates a domain separator based on @params array of usize treated as u32.
+/// It does so by hashing params in compression mode
 pub fn poseidon_safe_domain_separator<const OUT_LEN: usize>(
     instance: &Poseidon2<F>,
     params: &[usize],
 ) -> [F; OUT_LEN] {
+    // turn params into a big integer
     let domain_uint = params.iter().fold(BigUint::ZERO, |acc, &item| {
         acc * BigUint::from(((1 as u64) << 32) as u64) + (item as u32)
-    }); //collect the vector into a number
-
-    //Creating a Poseidon input
+    });
+    // create the Poseidon input by interpreting the number in base-p
     let mut input = vec![F::zero(); instance.get_t()];
     input.iter_mut().fold(domain_uint, |acc, item| {
         let tmp = acc.clone() % BigUint::from(FqConfig::MODULUS);
         *item = F::from(tmp.clone());
         (acc - tmp) / (BigUint::from(FqConfig::MODULUS))
-    }); //interpreting the number base-p
+    });
+    // now run Poseidon
     poseidon_compress::<OUT_LEN>(instance, &input)
 }
 
-///Poseidon Sponge hash
-///Takes input of arbitrary length
-///Capacity must hold an appropriate domain separator, e.g. hash of the lengths
+/// Poseidon Sponge hash
+/// Takes an input of arbitrary length
+/// Capacity must hold an appropriate domain separator, e.g., hash of the lengths
 pub fn poseidon_sponge<const OUT_LEN: usize>(
     instance: &Poseidon2<F>,
     capacity_value: &[F],
@@ -155,17 +162,19 @@ pub fn poseidon_sponge<const OUT_LEN: usize>(
     let mut input_vector = input.to_vec().clone();
     input_vector.resize_with(extra_elements, F::zero); //padding with 0s
 
-    //Initialize
+    // Initialize
     let mut state = vec![F::zero(); rate];
     state.extend_from_slice(capacity_value);
-    //Absorb
+
+    // Absorb
     for chunk in input_vector.chunks(rate) {
         for i in 0..chunk.len() {
             state[i] = state[i] + chunk[i];
             instance.permutation(&state);
         }
     }
-    //Squeeze
+
+    // Squeeze
     let mut out = vec![];
     while out.len() < OUT_LEN {
         out.extend_from_slice(&state[..rate]);
@@ -177,8 +186,8 @@ pub fn poseidon_sponge<const OUT_LEN: usize>(
 
 /// A tweakable hash function implemented using Poseidon2
 ///
-/// Note: HASH_LEN,TWEAK_LEN, CAPACITY, and PARAMETER_LEN must be given in
-/// the unit "number of field elements".
+/// Note: HASH_LEN,TWEAK_LEN, CAPACITY, and PARAMETER_LEN must
+/// be given in the unit "number of field elements".
 pub struct PoseidonTweakHash<
     const LOG_LIFETIME: usize,
     const CEIL_LOG_NUM_CHAINS: usize,
@@ -248,28 +257,6 @@ impl<
         }
     }
 
-    fn consistency_check() -> bool {
-        assert!(
-            PARAMETER_LEN + TWEAK_LEN + HASH_LEN <= 16,
-            "Poseidon Tweak Chain Hash: Input lengths too large for Poseidon instance"
-        );
-        assert!(
-            PARAMETER_LEN + TWEAK_LEN + 2 * HASH_LEN <= 24,
-            "Poseidon Tweak Tree Hash: Input lengths too large for Poseidon instance"
-        );
-        let state_bits = f64::log2(
-            BigUint::from(FqConfig::MODULUS)
-                .to_string()
-                .parse()
-                .unwrap(),
-        ) * f64::from(24 as u32);
-        assert!(
-            state_bits >= f64::from((crate::DOMAIN_PARAMETERS_LENGTH * 32) as u32),
-            "Parameter mismatch: not enough field elements to hash the domain separator"
-        );
-        true
-    }
-
     fn apply(
         parameter: &Self::Parameter,
         tweak: &Self::Tweak,
@@ -317,7 +304,7 @@ impl<
                 .chain(message.iter().flat_map(|sub_arr| sub_arr.iter()))
                 .cloned()
                 .collect();
-            let lengths: [usize; crate::DOMAIN_PARAMETERS_LENGTH] =
+            let lengths: [usize; DOMAIN_PARAMETERS_LENGTH] =
                 [PARAMETER_LEN, TWEAK_LEN, NUM_CHUNKS, HASH_LEN];
             let safe_input = poseidon_safe_domain_separator::<CAPACITY>(&instance, &lengths);
             let capacity_value = poseidon_compress::<CAPACITY>(&instance, &safe_input);
@@ -326,6 +313,28 @@ impl<
         }
         // will never be reached
         [F::one(); HASH_LEN]
+    }
+
+    #[cfg(test)]
+    fn internal_consistency_check() {
+        assert!(
+            PARAMETER_LEN + TWEAK_LEN + HASH_LEN <= 16,
+            "Poseidon Tweak Chain Hash: Input lengths too large for Poseidon instance"
+        );
+        assert!(
+            PARAMETER_LEN + TWEAK_LEN + 2 * HASH_LEN <= 24,
+            "Poseidon Tweak Tree Hash: Input lengths too large for Poseidon instance"
+        );
+        let state_bits = f64::log2(
+            BigUint::from(FqConfig::MODULUS)
+                .to_string()
+                .parse()
+                .unwrap(),
+        ) * f64::from(24 as u32);
+        assert!(
+            state_bits >= f64::from((DOMAIN_PARAMETERS_LENGTH * 32) as u32),
+            "Parameter mismatch: not enough field elements to hash the domain separator"
+        );
     }
 }
 
@@ -342,6 +351,9 @@ mod tests {
     #[test]
     fn test_apply_44() {
         let mut rng = thread_rng();
+
+        // make sure parameters make sense
+        PoseidonTweak44::internal_consistency_check();
 
         // test that nothing is panicking
         let parameter = PoseidonTweak44::rand_parameter(&mut rng);
@@ -366,6 +378,9 @@ mod tests {
     #[test]
     fn test_apply_37() {
         let mut rng = thread_rng();
+
+        // make sure parameters make sense
+        PoseidonTweak37::internal_consistency_check();
 
         // test that nothing is panicking
         let parameter = PoseidonTweak37::rand_parameter(&mut rng);

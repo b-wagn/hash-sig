@@ -40,6 +40,11 @@ pub trait SignatureScheme {
         message: &[u8; MESSAGE_LENGTH],
         sig: &Self::Signature,
     ) -> bool;
+
+    /// Function to check internal consistency of any given parameters
+    /// For testing only, and expected to panic if something is wrong.
+    #[cfg(test)]
+    fn internal_consistency_check();
 }
 
 pub mod generalized_xmss;
@@ -49,6 +54,12 @@ mod test_templates {
     use rand::thread_rng;
 
     use super::*;
+
+    /// Generic test for any implementation of the `SignatureScheme` trait.
+    /// Tests internal consistency of parameters
+    pub fn _test_signature_scheme_internal_consistency<T: SignatureScheme>() {
+        T::internal_consistency_check();
+    }
 
     /// Generic test for any implementation of the `SignatureScheme` trait.
     /// Tests correctness, i.e., that honest key gen, honest signing, implies

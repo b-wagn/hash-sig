@@ -1,5 +1,7 @@
 use sha3::{Digest, Sha3_256};
 
+use crate::{TWEAK_SEPARATOR_FOR_CHAIN_HASH, TWEAK_SEPARATOR_FOR_TREE_HASH};
+
 use super::TweakableHash;
 
 /// Enum to implement tweaks.
@@ -24,7 +26,7 @@ impl ShaTweak {
             } => {
                 let mut bytes = Vec::new();
                 // this is a tree tweak, so we start with a 0x00 byte
-                bytes.push(0x00);
+                bytes.push(TWEAK_SEPARATOR_FOR_TREE_HASH);
                 // then we extend with the actual data
                 bytes.extend(&level.to_be_bytes());
                 bytes.extend(&pos_in_level.to_be_bytes());
@@ -41,7 +43,7 @@ impl ShaTweak {
             } => {
                 let mut bytes = Vec::new();
                 // this is a chain tweak, so we start with a 0x01 byte
-                bytes.push(0x01);
+                bytes.push(TWEAK_SEPARATOR_FOR_CHAIN_HASH);
                 // then we extend with the actual data
                 bytes.extend(&epoch.to_be_bytes());
                 bytes.extend(&chain_index.to_be_bytes());
@@ -115,7 +117,8 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
         result[0..HASH_LEN].try_into().unwrap()
     }
 
-    fn consistency_check() -> bool {
+    #[cfg(test)]
+    fn internal_consistency_check() {
         assert!(
             PARAMETER_LEN < 256 / 8,
             "SHA Tweak Hash: Parameter Length must be less than 256 bit"
@@ -124,7 +127,6 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
             HASH_LEN < 256 / 8,
             "SHA Tweak Hash: Hash Length must be less than 256 bit"
         );
-        true
     }
 }
 
@@ -143,7 +145,8 @@ mod tests {
     fn test_apply_128_128() {
         let mut rng = thread_rng();
 
-        ShaTweak128128::consistency_check();
+        // make sure parameters make sense
+        ShaTweak128128::internal_consistency_check();
 
         // test that nothing is panicking
         let parameter = ShaTweak128128::rand_parameter(&mut rng);
@@ -164,7 +167,8 @@ mod tests {
     fn test_apply_128_192() {
         let mut rng = thread_rng();
 
-        ShaTweak128192::consistency_check();
+        // make sure parameters make sense
+        ShaTweak128192::internal_consistency_check();
 
         // test that nothing is panicking
         let parameter = ShaTweak128192::rand_parameter(&mut rng);
@@ -184,6 +188,9 @@ mod tests {
     #[test]
     fn test_apply_192_192() {
         let mut rng = thread_rng();
+
+        // make sure parameters make sense
+        ShaTweak192192::internal_consistency_check();
 
         // test that nothing is panicking
         let parameter = ShaTweak192192::rand_parameter(&mut rng);

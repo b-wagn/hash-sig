@@ -31,9 +31,10 @@ pub trait MessageHash {
         message: &[u8; MESSAGE_LENGTH],
     ) -> Vec<u8>;
 
-    /// Check that the parameters are sound and internally consistent
-    /// Panics if smth is wrong
-    fn consistency_check();
+    /// Function to check internal consistency of any given parameters
+    /// For testing only, and expected to panic if something is wrong.
+    #[cfg(test)]
+    fn internal_consistency_check();
 }
 
 pub mod poseidon;

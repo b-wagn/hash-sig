@@ -149,11 +149,6 @@ where
         epoch: u32,
         message: &[u8; MESSAGE_LENGTH],
     ) -> Result<Self::Signature, SigningError> {
-        // check first that we have the correct message length
-        if message.len() != MESSAGE_LENGTH {
-            return Err(SigningError::InvalidMessageLength);
-        }
-
         // first component of the signature is the Merkle path that
         // opens the one-time pk for that epoch, where the one-time pk
         // will be recomputed by the verifier from the hashes
@@ -272,6 +267,15 @@ where
             &sig.path,
         )
     }
+
+    #[cfg(test)]
+    fn internal_consistency_check() {
+        // we check consistency of all internally used components
+        // namely, PRF, incomparable encoding, and tweak hash
+        PRF::internal_consistency_check();
+        IE::internal_consistency_check();
+        TH::internal_consistency_check();
+    }
 }
 
 /// Instantiations of the generalized XMSS signature scheme based on SHA
@@ -281,10 +285,12 @@ pub mod instantiations_sha;
 mod tests {
     use crate::{
         inc_encoding::{basic_winternitz::WinternitzEncoding, target_sum::TargetSumEncoding},
-        signature::test_templates::_test_signature_scheme_correctness,
+        signature::test_templates::{
+            _test_signature_scheme_correctness, _test_signature_scheme_internal_consistency,
+        },
         symmetric::{
             message_hash::{sha::ShaMessageHash192x3, MessageHash},
-            prf::hashprf::ShaPRF,
+            prf::sha::ShaPRF,
             tweak_hash::sha::ShaTweak192192,
         },
     };
@@ -292,7 +298,7 @@ mod tests {
     use super::*;
 
     #[test]
-    pub fn test_correctness_winternitz() {
+    pub fn test_winternitz() {
         // Note: do not use these parameters, they are just for testing
         type PRF = ShaPRF<24>;
         type TH = ShaTweak192192;
@@ -303,6 +309,8 @@ mod tests {
         const LOG_LIFETIME: usize = 9;
         type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
+        _test_signature_scheme_internal_consistency::<SIG>();
+
         _test_signature_scheme_correctness::<SIG>(289);
         _test_signature_scheme_correctness::<SIG>(2);
         _test_signature_scheme_correctness::<SIG>(19);
@@ -311,7 +319,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_correctness_target_sum() {
+    pub fn test_target_sum() {
         // Note: do not use these parameters, they are just for testing
         type PRF = ShaPRF<24>;
         type TH = ShaTweak192192;
@@ -323,6 +331,8 @@ mod tests {
         type IE = TargetSumEncoding<MH, EXPECTED_SUM>;
         const LOG_LIFETIME: usize = 8;
         type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+
+        _test_signature_scheme_internal_consistency::<SIG>();
 
         _test_signature_scheme_correctness::<SIG>(13);
         _test_signature_scheme_correctness::<SIG>(9);

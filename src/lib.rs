@@ -1,10 +1,9 @@
-/// Message length in bytes, for messages
-/// that we want to sign.
+/// Message length in bytes, for messages that we want to sign.
 pub const MESSAGE_LENGTH: usize = 32;
-pub const TWEAK_SEPARATOR_FOR_MESSAGE_HASH: u8 = 2;
-pub const TWEAK_SEPARATOR_FOR_TREE_HASH: u8 = 1;
-pub const TWEAK_SEPARATOR_FOR_CHAIN_HASH: u8 = 0;
-const DOMAIN_PARAMETERS_LENGTH: usize = 4;
+
+pub const TWEAK_SEPARATOR_FOR_MESSAGE_HASH: u8 = 0x02;
+pub const TWEAK_SEPARATOR_FOR_TREE_HASH: u8 = 0x01;
+pub const TWEAK_SEPARATOR_FOR_CHAIN_HASH: u8 = 0x00;
 
 pub mod inc_encoding;
 pub mod signature;
