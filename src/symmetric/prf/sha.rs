@@ -6,7 +6,8 @@ use zkhash::ark_ff::MontConfig;
 use zkhash::fields::babybear::{FpBabyBear, FqConfig};
 
 type F = FpBabyBear;
-const PRF_BYTE_LEN: usize = 8; //How many PRF bytes we need to generate a uniformly random field element
+// Number of pseudorandom bytes to generate one pseudorandom field element
+const PRF_BYTE_LEN: usize = 8; 
 
 const KEY_LENGTH: usize = 32; // 32 bytes
 const PRF_DOMAIN_SEP: [u8; 16] = [
