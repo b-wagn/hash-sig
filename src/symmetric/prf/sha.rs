@@ -7,7 +7,7 @@ use zkhash::fields::babybear::{FpBabyBear, FqConfig};
 
 type F = FpBabyBear;
 // Number of pseudorandom bytes to generate one pseudorandom field element
-const PRF_BYTE_LEN: usize = 8; 
+const PRF_BYTE_LEN: usize = 8;
 
 const KEY_LENGTH: usize = 32; // 32 bytes
 const PRF_DOMAIN_SEP: [u8; 16] = [
@@ -57,11 +57,11 @@ impl<const OUTPUT_LENGTH: usize> Pseudorandom for ShaPRF<OUTPUT_LENGTH> {
     }
 }
 
-pub struct ShaPRFtoF<const OUTPUT_FE_LENGTH: usize>;
+pub struct ShaPRFtoF<const OUTPUT_LENGTH_FE: usize>;
 
-impl<const OUTPUT_FE_LENGTH: usize> Pseudorandom for ShaPRFtoF<OUTPUT_FE_LENGTH> {
+impl<const OUTPUT_LENGTH_FE: usize> Pseudorandom for ShaPRFtoF<OUTPUT_LENGTH_FE> {
     type Key = [u8; KEY_LENGTH];
-    type Output = [F; OUTPUT_FE_LENGTH];
+    type Output = [F; OUTPUT_LENGTH_FE];
 
     fn gen<R: rand::Rng>(rng: &mut R) -> Self::Key {
         let mut key = [0u8; KEY_LENGTH];
@@ -94,7 +94,7 @@ impl<const OUTPUT_FE_LENGTH: usize> Pseudorandom for ShaPRFtoF<OUTPUT_FE_LENGTH>
         let mut xof_reader = hasher.finalize_xof();
 
         // Buffer to store the output
-        let mut prf_output = vec![0u8; PRF_BYTE_LEN * OUTPUT_FE_LENGTH];
+        let mut prf_output = vec![0u8; PRF_BYTE_LEN * OUTPUT_LENGTH_FE];
 
         // Read the extended output into the buffer
         xof_reader.read(&mut prf_output);
@@ -107,7 +107,7 @@ impl<const OUTPUT_FE_LENGTH: usize> Pseudorandom for ShaPRFtoF<OUTPUT_FE_LENGTH>
             let integer_value = BigUint::from_bytes_be(chunk) % BigUint::from(FqConfig::MODULUS);
             result.push(F::from(integer_value));
         }
-        let slice = &result[0..OUTPUT_FE_LENGTH];
+        let slice = &result[0..OUTPUT_LENGTH_FE];
         slice.try_into().expect("Length mismatch")
     }
 
