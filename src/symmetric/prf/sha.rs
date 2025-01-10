@@ -94,7 +94,7 @@ impl<const OUTPUT_FE_LENGTH: usize> Pseudorandom for ShaPRFtoF<OUTPUT_FE_LENGTH>
         let mut xof_reader = hasher.finalize_xof();
 
         // Buffer to store the output
-        let mut prf_output = vec![0u8; PRF_BYTE_LEN * OUTPUT_FE_LENGTH]; // Example: 64 bytes of output
+        let mut prf_output = vec![0u8; PRF_BYTE_LEN * OUTPUT_FE_LENGTH];
 
         // Read the extended output into the buffer
         xof_reader.read(&mut prf_output);
