@@ -289,9 +289,14 @@ mod tests {
             _test_signature_scheme_correctness, _test_signature_scheme_internal_consistency,
         },
         symmetric::{
-            message_hash::{sha::ShaMessageHash192x3, MessageHash},
-            prf::sha::ShaPRF,
-            tweak_hash::sha::ShaTweak192192,
+            message_hash::{
+                poseidon::PoseidonMessageHashW1, sha::ShaMessageHash192x3, MessageHash,
+            },
+            prf::sha::{ShaPRF, ShaPRFtoF},
+            tweak_hash::{
+                poseidon::{PoseidonTweakW1L18, PoseidonTweakW1L5},
+                sha::ShaTweak192192,
+            },
         },
     };
 
@@ -312,6 +317,25 @@ mod tests {
         _test_signature_scheme_internal_consistency::<SIG>();
 
         _test_signature_scheme_correctness::<SIG>(289);
+        _test_signature_scheme_correctness::<SIG>(2);
+        _test_signature_scheme_correctness::<SIG>(19);
+        _test_signature_scheme_correctness::<SIG>(0);
+        _test_signature_scheme_correctness::<SIG>(11);
+    }
+    #[test]
+    pub fn test_winternitz_poseidon() {
+        // Note: do not use these parameters, they are just for testing
+        type PRF = ShaPRFtoF<7>;
+        type TH = PoseidonTweakW1L5;
+        type MH = PoseidonMessageHashW1;
+        const _CHUNK_SIZE: usize = 1;
+        const NUM_CHUNKS_CHECKSUM: usize = 8;
+        type IE = WinternitzEncoding<MH, NUM_CHUNKS_CHECKSUM>;
+        const LOG_LIFETIME: usize = 5;
+        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+
+        _test_signature_scheme_internal_consistency::<SIG>();
+
         _test_signature_scheme_correctness::<SIG>(2);
         _test_signature_scheme_correctness::<SIG>(19);
         _test_signature_scheme_correctness::<SIG>(0);
@@ -339,5 +363,27 @@ mod tests {
         _test_signature_scheme_correctness::<SIG>(21);
         _test_signature_scheme_correctness::<SIG>(0);
         _test_signature_scheme_correctness::<SIG>(31);
+    }
+
+    #[test]
+    pub fn test_target_sum_winternitz_poseidon() {
+        // Note: do not use these parameters, they are just for testing
+        type PRF = ShaPRFtoF<7>;
+        type TH = PoseidonTweakW1L5;
+        type MH = PoseidonMessageHashW1;
+        const CHUNK_SIZE: usize = MH::CHUNK_SIZE;
+        const NUM_CHUNKS: usize = MH::NUM_CHUNKS;
+        const MAX_CHUNK_VALUE: usize = (1 << CHUNK_SIZE) - 1;
+        const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
+        type IE = TargetSumEncoding<MH, EXPECTED_SUM>;
+        const LOG_LIFETIME: usize = 5;
+        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+
+        _test_signature_scheme_internal_consistency::<SIG>();
+
+        _test_signature_scheme_correctness::<SIG>(2);
+        _test_signature_scheme_correctness::<SIG>(19);
+        _test_signature_scheme_correctness::<SIG>(0);
+        _test_signature_scheme_correctness::<SIG>(11);
     }
 }

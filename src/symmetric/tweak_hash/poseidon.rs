@@ -341,6 +341,8 @@ impl<
 // Example instantiations
 pub type PoseidonTweak44 = PoseidonTweakHash<20, 8, 2, 4, 4, 3, 9, 128>;
 pub type PoseidonTweak37 = PoseidonTweakHash<20, 8, 2, 3, 7, 3, 9, 128>;
+pub type PoseidonTweakW1L18 = PoseidonTweakHash<18, 8, 1, 5, 7, 2, 9, 163>;
+pub type PoseidonTweakW1L5 = PoseidonTweakHash<5, 8, 1, 5, 7, 2, 9, 163>;
 
 #[cfg(test)]
 mod tests {

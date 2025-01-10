@@ -196,6 +196,7 @@ impl<
 
 // Example instantiations
 pub type PoseidonMessageHash445 = PoseidonMessageHash<4, 4, 5, 128, 2, 2, 9>;
+pub type PoseidonMessageHashW1 = PoseidonMessageHash<5, 5, 5, 163, 1, 2, 9>;
 
 #[cfg(test)]
 mod tests {
@@ -220,5 +221,23 @@ mod tests {
 
         PoseidonMessageHash445::internal_consistency_check();
         PoseidonMessageHash445::apply(&parameter, epoch, &randomness, &message);
+    }
+    #[test]
+    fn test_apply_w1() {
+        let mut rng = thread_rng();
+
+        let mut parameter = [F::one(); 5];
+        for i in 0..5 {
+            parameter[i] = F::rand(&mut rng);
+        }
+
+        let mut message = [0u8; MESSAGE_LENGTH];
+        rng.fill(&mut message);
+
+        let epoch = 13;
+        let randomness = PoseidonMessageHashW1::rand(&mut rng);
+
+        PoseidonMessageHashW1::internal_consistency_check();
+        PoseidonMessageHashW1::apply(&parameter, epoch, &randomness, &message);
     }
 }
