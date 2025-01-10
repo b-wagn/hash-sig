@@ -278,6 +278,7 @@ where
     }
 }
 
+pub mod instantiations_poseidon;
 /// Instantiations of the generalized XMSS signature scheme based on SHA
 pub mod instantiations_sha;
 
