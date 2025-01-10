@@ -102,7 +102,7 @@ impl<const OUTPUT_FE_LENGTH: usize> Pseudorandom for ShaPRFtoF<OUTPUT_FE_LENGTH>
         // Final result
         let mut result = Vec::new();
 
-        // Mapping bytes to FE
+        // Mapping bytes to field elements
         for chunk in prf_output.chunks(PRF_BYTE_LEN) {
             let integer_value = BigUint::from_bytes_be(chunk) % BigUint::from(FqConfig::MODULUS);
             result.push(F::from(integer_value));
