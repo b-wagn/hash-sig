@@ -97,10 +97,12 @@ where
         let num_chains = IE::NUM_CHUNKS;
         let chain_length = 1 << IE::CHUNK_SIZE;
 
+        // parallelize the chain ends hash computation for each epoch
         let chain_ends_hashes = (0..Self::LIFETIME)
             .into_par_iter()
             .map(|epoch| {
                 // each epoch has a number of chains
+                // parallelize the chain ends computation for each chain
                 let chain_ends = (0..num_chains)
                     .into_par_iter()
                     .map(|chain_index| {

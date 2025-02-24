@@ -34,6 +34,7 @@ pub fn build_tree<TH: TweakableHash>(
     while layer_size >= 2 {
         // this new layer will have half the size
         layer_size = layer_size / 2;
+        // parallelize the two to one compressions
         layers.push(
             (0..layer_size)
                 .into_par_iter()
