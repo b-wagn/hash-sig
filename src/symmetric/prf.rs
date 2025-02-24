@@ -2,7 +2,7 @@ use rand::Rng;
 
 /// Trait to model a pseudorandom function
 pub trait Pseudorandom {
-    type Key;
+    type Key: Send + Sync;
     type Output;
 
     /// Sample a random domain element

@@ -13,9 +13,9 @@ use rand::Rng;
 /// to obtain distinct tweaks for applications in chains and
 /// applications in Merkle trees.
 pub trait TweakableHash {
-    type Parameter: Copy + Sized;
+    type Parameter: Copy + Sized + Send + Sync;
     type Tweak;
-    type Domain: Copy + PartialEq + Sized;
+    type Domain: Copy + PartialEq + Sized + Send + Sync;
 
     /// Generates a random public parameter.
     fn rand_parameter<R: Rng>(rng: &mut R) -> Self::Parameter;

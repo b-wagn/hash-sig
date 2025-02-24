@@ -10,28 +10,23 @@ pub struct HashTree<TH: TweakableHash> {
     layers: Vec<Vec<TH::Domain>>,
 }
 
-/// Function to compute a hash-tree given the leafs as input.
-/// The number of leafs must be a power of two.
+/// Function to compute a hash-tree given the leafs hashes as input.
+/// The number of leafs hashes must be a power of two.
 pub fn build_tree<TH: TweakableHash>(
     parameter: &TH::Parameter,
-    leafs: &[&[TH::Domain]],
+    leafs_hashes: Vec<TH::Domain>,
 ) -> HashTree<TH> {
     // check that number of leafs is a power of two
     assert!(
-        leafs.len().is_power_of_two(),
+        leafs_hashes.len().is_power_of_two(),
         "Hash-Tree build_tree: Number of leafs should be power of two"
     );
 
-    let mut layer_size = leafs.len();
+    let mut layer_size = leafs_hashes.len();
     let mut layers: Vec<Vec<TH::Domain>> = Vec::new();
 
     // the bottom layer contains the individual hashes of all leafs
-    layers.push(Vec::new());
-    for i in 0..layer_size {
-        let tweak = TH::tree_tweak(0, i as u32);
-        let hash = TH::apply(parameter, &tweak, leafs[i]);
-        layers[0].push(hash);
-    }
+    layers.push(leafs_hashes);
 
     // now, we build each layer by hashing pairs in the previous layer
     let mut level: u8 = 1;
@@ -202,10 +197,14 @@ mod tests {
             leafs.push(leaf);
         }
 
-        let leafs_slices: Vec<_> = leafs.iter().map(|v| v.as_slice()).collect();
+        let leafs_hashes: Vec<_> = leafs
+            .iter()
+            .enumerate()
+            .map(|(i, v)| TestTH::apply(&parameter, &TestTH::tree_tweak(0, i as u32), v.as_slice()))
+            .collect();
 
         // Build the hash tree using the random parameter and leaves
-        let tree = build_tree::<TestTH>(&parameter, &leafs_slices);
+        let tree = build_tree::<TestTH>(&parameter, leafs_hashes);
 
         // now compute a commitment, i.e., Merkle root
         let root = hash_tree_root::<TestTH>(&tree);

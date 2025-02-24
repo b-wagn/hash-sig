@@ -1,4 +1,5 @@
 use rand::Rng;
+use rayon::prelude::*;
 
 use crate::{
     inc_encoding::IncomparableEncoding,
@@ -95,38 +96,34 @@ where
         // chain starting at the secret key.
         let num_chains = IE::NUM_CHUNKS;
         let chain_length = 1 << IE::CHUNK_SIZE;
-        let mut chain_starts = Vec::with_capacity(Self::LIFETIME as usize);
-        let mut chain_ends = Vec::with_capacity(Self::LIFETIME as usize);
 
-        for epoch in 0..Self::LIFETIME {
-            let mut epoch_chain_starts = Vec::with_capacity(num_chains);
-            let mut epoch_chain_ends = Vec::with_capacity(num_chains);
+        let chain_ends_hashes = (0..Self::LIFETIME)
+            .into_par_iter()
+            .map(|epoch| {
+                // each epoch has a number of chains
+                let chain_ends = (0..num_chains)
+                    .into_par_iter()
+                    .map(|chain_index| {
+                        // each chain start is just a PRF evaluation
+                        let start = PRF::apply(&prf_key, epoch as u32, chain_index as u64).into();
+                        // walk the chain to get the public chain end
+                        chain::<TH>(
+                            &parameter,
+                            epoch as u32,
+                            chain_index as u16,
+                            0,
+                            chain_length - 1,
+                            &start,
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                // build hash of chain ends / public keys
+                TH::apply(&parameter, &TH::tree_tweak(0, epoch as u32), &chain_ends)
+            })
+            .collect::<Vec<_>>();
 
-            // each epoch has a number of chains
-            for chain_index in 0..num_chains {
-                // each chain start is just a PRF evaluation
-                let start = PRF::apply(&prf_key, epoch as u32, chain_index as u64).into();
-                // walk the chain to get the public chain end
-                let end = chain::<TH>(
-                    &parameter,
-                    epoch as u32,
-                    chain_index as u16,
-                    0,
-                    chain_length - 1,
-                    &start,
-                );
-                // collect
-                epoch_chain_starts.push(start);
-                epoch_chain_ends.push(end);
-            }
-            chain_starts.push(epoch_chain_starts);
-            chain_ends.push(epoch_chain_ends);
-        }
-
-        // now build a Merkle tree on top of these chain ends / public keys
-        let chain_ends_slices: Vec<&[TH::Domain]> =
-            chain_ends.iter().map(|v| v.as_slice()).collect();
-        let tree = build_tree(&parameter, &chain_ends_slices);
+        // now build a Merkle tree on top of the hashes of chain ends / public keys
+        let tree = build_tree(&parameter, chain_ends_hashes);
         let root = hash_tree_root(&tree);
 
         // assemble public key and secret key
