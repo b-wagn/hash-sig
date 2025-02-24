@@ -1,4 +1,5 @@
 use crate::symmetric::tweak_hash::TweakableHash;
+use rayon::prelude::*;
 
 /// Hash-Tree based on a tweakable hash function
 /// We consider hash trees in which each leaf is first
@@ -23,7 +24,7 @@ pub fn build_tree<TH: TweakableHash>(
     );
 
     let mut layer_size = leafs_hashes.len();
-    let mut layers: Vec<Vec<TH::Domain>> = Vec::new();
+    let mut layers: Vec<Vec<TH::Domain>> = Vec::with_capacity(layer_size.ilog2() as usize + 1);
 
     // the bottom layer contains the individual hashes of all leafs
     layers.push(leafs_hashes);
@@ -31,18 +32,20 @@ pub fn build_tree<TH: TweakableHash>(
     // now, we build each layer by hashing pairs in the previous layer
     let mut level: u8 = 1;
     while layer_size >= 2 {
-        // start a new layer
-        layers.push(Vec::new());
         // this new layer will have half the size
         layer_size = layer_size / 2;
-        for i in 0..layer_size {
-            let left_idx = 2 * i;
-            let right_idx = 2 * i + 1;
-            let tweak = TH::tree_tweak(level, i as u32);
-            let children = &layers[(level - 1) as usize][left_idx..=right_idx];
-            let parent = TH::apply(parameter, &tweak, children);
-            layers[level as usize].push(parent);
-        }
+        layers.push(
+            (0..layer_size)
+                .into_par_iter()
+                .map(|i| {
+                    let left_idx = 2 * i;
+                    let right_idx = 2 * i + 1;
+                    let tweak = TH::tree_tweak(level, i as u32);
+                    let children = &layers[(level - 1) as usize][left_idx..=right_idx];
+                    TH::apply(parameter, &tweak, children)
+                })
+                .collect(),
+        );
         level += 1;
     }
 
