@@ -25,11 +25,10 @@ impl ShaTweak {
                 pos_in_level,
             } => {
                 let mut bytes = Vec::new();
-                // this is a tree tweak, so we start with a 0x00 byte
-                bytes.push(TWEAK_SEPARATOR_FOR_TREE_HASH);
-                // then we extend with the actual data
                 bytes.extend(&level.to_be_bytes());
                 bytes.extend(&pos_in_level.to_be_bytes());
+                // this is a tree tweak, so we push a 0x01 byte
+                bytes.push(TWEAK_SEPARATOR_FOR_TREE_HASH);
                 // Note: it is fine that both tweaks have different
                 // lengths as the domain separator (0x00 or 0x01)
                 // ensures that the length is known and we know when
@@ -42,12 +41,11 @@ impl ShaTweak {
                 pos_in_chain,
             } => {
                 let mut bytes = Vec::new();
-                // this is a chain tweak, so we start with a 0x01 byte
-                bytes.push(TWEAK_SEPARATOR_FOR_CHAIN_HASH);
-                // then we extend with the actual data
                 bytes.extend(&epoch.to_be_bytes());
                 bytes.extend(&chain_index.to_be_bytes());
                 bytes.extend(&pos_in_chain.to_be_bytes());
+                // this is a chain tweak, so we push a 0x00 byte
+                bytes.push(TWEAK_SEPARATOR_FOR_CHAIN_HASH);
                 bytes
             }
         }
