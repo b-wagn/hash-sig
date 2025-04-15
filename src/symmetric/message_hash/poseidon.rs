@@ -146,7 +146,7 @@ impl<
             .chain(message_fe.iter())
             .copied()
             .collect();
-        let hash_fe = poseidon_compress::<HASH_LEN_FE>(&instance, &combined_input);
+        let hash_fe = poseidon_compress(&instance, &combined_input);
 
         // decode field elements into chunks and return them
         decode_to_chunks::<NUM_CHUNKS, CHUNK_SIZE, HASH_LEN_FE>(&hash_fe).to_vec()

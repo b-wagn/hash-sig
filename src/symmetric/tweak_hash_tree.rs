@@ -206,7 +206,7 @@ mod tests {
             .collect();
 
         // Build the hash tree using the random parameter and leaves
-        let tree = build_tree::<TestTH>(&parameter, leafs_hashes);
+        let tree = build_tree(&parameter, leafs_hashes);
 
         // now compute a commitment, i.e., Merkle root
         let root = hash_tree_root::<TestTH>(&tree);

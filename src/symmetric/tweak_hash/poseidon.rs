@@ -292,7 +292,7 @@ impl<
                     .chain(single.iter())
                     .copied()
                     .collect();
-                poseidon_compress::<HASH_LEN>(&instance_short, &combined_input)
+                poseidon_compress(&instance_short, &combined_input)
             }
             [left, right] => {
                 // we compress parameter, tweak, message (now containing two parts)
@@ -303,7 +303,7 @@ impl<
                     .chain(right.iter())
                     .copied()
                     .collect();
-                poseidon_compress::<HASH_LEN>(&instance, &combined_input)
+                poseidon_compress(&instance, &combined_input)
             }
             _ if message.len() > 2 => {
                 let combined_input: Vec<F> = parameter
