@@ -12,7 +12,7 @@ pub trait MessageHash {
     type Parameter: Clone + Sized;
     type Randomness;
 
-    const NUM_CHUNKS: usize;
+    const DIMENSION: usize;
 
     /// Must be 1, 2, 4, or 8
     const CHUNK_SIZE: usize;
@@ -22,7 +22,7 @@ pub trait MessageHash {
 
     /// Applies the message hash to a parameter, an epoch,
     /// a randomness, and a message. It outputs a list of chunks.
-    /// The list contains NUM_CHUNKS many elements, each between
+    /// The list contains DIMENSION many elements, each between
     /// 0 and 2^CHUNK_SIZE - 1 (inclusive).
     fn apply(
         parameter: &Self::Parameter,

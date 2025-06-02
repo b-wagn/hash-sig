@@ -19,7 +19,7 @@ pub struct TargetSumEncoding<MH: MessageHash, const TARGET_SUM: usize> {
 }
 
 impl<MH: MessageHash, const TARGET_SUM: usize> TargetSumEncoding<MH, TARGET_SUM> {
-    const NUM_CHUNKS: usize = MH::NUM_CHUNKS;
+    const NUM_CHUNKS: usize = MH::DIMENSION;
     const TARGET_SUM: usize = TARGET_SUM;
 }
 
@@ -30,14 +30,14 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
 
     type Randomness = MH::Randomness;
 
-    const NUM_CHUNKS: usize = Self::NUM_CHUNKS;
+    const DIMENSION: usize = Self::NUM_CHUNKS;
 
     /// we did one experiment with random message hashes.
     /// In production, this should be estimated via more
     /// extensive experiments with concrete hash functions.
     const MAX_TRIES: usize = 100000;
 
-    const CHUNK_SIZE: usize = MH::CHUNK_SIZE;
+    const BASE: usize = 1 << MH::CHUNK_SIZE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
         MH::rand(rng)
@@ -70,6 +70,13 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
             MH::CHUNK_SIZE > 0 && MH::CHUNK_SIZE <= 8 && 8 % MH::CHUNK_SIZE == 0,
             "Target Sum Encoding: Chunk Size must be 1, 2, 4, or 8"
         );
+
+        // base must not be too large
+        assert!(
+            MH::CHUNK_SIZE <= 16,
+            "Target Sum Encoding: Base must be at most 2^16"
+        );
+
         // also check internal consistency of message hash
         MH::internal_consistency_check();
     }

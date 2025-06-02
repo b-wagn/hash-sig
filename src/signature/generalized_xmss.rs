@@ -97,8 +97,8 @@ where
         // chain starting at the secret key element.
         // The public key for that epoch is then the hash of all chain ends.
 
-        let num_chains = IE::NUM_CHUNKS;
-        let chain_length = 1 << IE::CHUNK_SIZE;
+        let num_chains = IE::DIMENSION;
+        let chain_length = IE::BASE;
 
         // parallelize the chain ends hash computation for each epoch
         let chain_ends_hashes = (0..Self::LIFETIME)
@@ -185,7 +185,7 @@ where
 
         // we will include rho in the signature, and
         // we use x to determine how far the signer walks in the chains
-        let num_chains = IE::NUM_CHUNKS;
+        let num_chains = IE::DIMENSION;
         assert!(
             x.len() == num_chains,
             "Encoding is broken: returned too many or too few chunks."
@@ -232,8 +232,8 @@ where
 
         // now, we recompute the epoch's one-time public key
         // from the hashes by walking hash chains.
-        let chain_length = 1 << IE::CHUNK_SIZE;
-        let num_chains = IE::NUM_CHUNKS;
+        let chain_length = IE::BASE;
+        let num_chains = IE::DIMENSION;
         assert!(
             x.len() == num_chains,
             "Encoding is broken: returned too many or too few chunks."
@@ -242,7 +242,7 @@ where
         for (chain_index, xi) in x.iter().enumerate() {
             // If the signer has already walked x[i] steps, then we need
             // to walk chain_length - 1 - x[i] steps to reach the end of the chain
-            let steps = chain_length - 1 - xi;
+            let steps = (chain_length - 1) as u16 - xi;
             let start_pos_in_chain = *xi;
             let start = &sig.hashes[chain_index];
             let end = chain::<TH>(
@@ -345,7 +345,7 @@ mod tests {
         type TH = ShaTweak192192;
         type MH = ShaMessageHash192x3;
         const CHUNK_SIZE: usize = MH::CHUNK_SIZE;
-        const NUM_CHUNKS: usize = MH::NUM_CHUNKS;
+        const NUM_CHUNKS: usize = MH::DIMENSION;
         const MAX_CHUNK_VALUE: usize = (1 << CHUNK_SIZE) - 1;
         const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
         type IE = TargetSumEncoding<MH, EXPECTED_SUM>;
@@ -368,7 +368,7 @@ mod tests {
         type TH = PoseidonTweakW1L5;
         type MH = PoseidonMessageHashW1;
         const CHUNK_SIZE: usize = MH::CHUNK_SIZE;
-        const NUM_CHUNKS: usize = MH::NUM_CHUNKS;
+        const NUM_CHUNKS: usize = MH::DIMENSION;
         const MAX_CHUNK_VALUE: usize = (1 << CHUNK_SIZE) - 1;
         const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
         type IE = TargetSumEncoding<MH, EXPECTED_SUM>;

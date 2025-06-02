@@ -29,7 +29,7 @@ impl<
 
     type Randomness = [u8; RAND_LEN];
 
-    const NUM_CHUNKS: usize = NUM_CHUNKS;
+    const DIMENSION: usize = NUM_CHUNKS;
 
     const CHUNK_SIZE: usize = CHUNK_SIZE;
 

@@ -25,7 +25,7 @@ pub struct WinternitzEncoding<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize>
 impl<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize>
     WinternitzEncoding<MH, NUM_CHUNKS_CHECKSUM>
 {
-    const NUM_CHUNKS_MESSAGE: usize = MH::NUM_CHUNKS;
+    const NUM_CHUNKS_MESSAGE: usize = MH::DIMENSION;
     const BASE: usize = 1 << MH::CHUNK_SIZE;
     const NUM_CHUNKS: usize = Self::NUM_CHUNKS_MESSAGE + NUM_CHUNKS_CHECKSUM;
 }
@@ -37,11 +37,11 @@ impl<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize> IncomparableEncoding
 
     type Randomness = MH::Randomness;
 
-    const NUM_CHUNKS: usize = Self::NUM_CHUNKS;
+    const DIMENSION: usize = Self::NUM_CHUNKS;
 
     const MAX_TRIES: usize = 1;
 
-    const CHUNK_SIZE: usize = MH::CHUNK_SIZE;
+    const BASE: usize = Self::BASE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
         MH::rand(rng)
@@ -64,7 +64,7 @@ impl<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize> IncomparableEncoding
 
         // we split the checksum into chunks, in little-endian
         let checksum_bytes = checksum.to_le_bytes();
-        let chunks_checksum = bytes_to_chunks(&checksum_bytes, Self::CHUNK_SIZE);
+        let chunks_checksum = bytes_to_chunks(&checksum_bytes, MH::CHUNK_SIZE);
 
         // Assemble the resulting vector
         // we take all message chunks, followed by the checksum chunks.
@@ -84,6 +84,15 @@ impl<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize> IncomparableEncoding
             MH::CHUNK_SIZE > 0 && MH::CHUNK_SIZE <= 8 && 8 % MH::CHUNK_SIZE == 0,
             "Winternitz Encoding: Chunk Size must be 1, 2, 4, or 8"
         );
+
+        // base must not be too large
+        assert!(
+            MH::CHUNK_SIZE <= 16,
+            "Winternitz Encoding: Base must be at most 2^16"
+        );
+
+        // chunk size and base must be consistent
+
         // also check internal consistency of message hash
         MH::internal_consistency_check();
     }
