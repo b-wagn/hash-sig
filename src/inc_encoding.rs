@@ -10,7 +10,7 @@ pub type EncodingError = ();
 ///
 /// A codeword is a vector of a fixed dimension containing
 /// integer elements between 0 and BASE - 1.
-/// We require BASE to be at most 1 << 16 to ensure that
+/// **WARNING**: We require BASE to be at most 1 << 16 to ensure that
 /// the entries fit into u16.
 ///
 /// The main feature of these encodings is that no two distinct
