@@ -34,13 +34,8 @@ pub mod lifetime_2_to_the_18 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw1 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W1,
-        >;
+        type THw1 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W1>;
         type PRFw1 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw1 = WinternitzEncoding<MHw1, CHUNK_SIZE_W1, NUM_CHUNKS_CHECKSUM_W1>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 1
@@ -61,13 +56,8 @@ pub mod lifetime_2_to_the_18 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw2 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W2,
-        >;
+        type THw2 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W2>;
         type PRFw2 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw2 = WinternitzEncoding<MHw2, CHUNK_SIZE_W2, NUM_CHUNKS_CHECKSUM_W2>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 2
@@ -88,13 +78,8 @@ pub mod lifetime_2_to_the_18 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw4 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W4,
-        >;
+        type THw4 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W4>;
         type PRFw4 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw4 = WinternitzEncoding<MHw4, CHUNK_SIZE_W4, NUM_CHUNKS_CHECKSUM_W4>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 4
@@ -115,13 +100,8 @@ pub mod lifetime_2_to_the_18 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw8 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W8,
-        >;
+        type THw8 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W8>;
         type PRFw8 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw8 = WinternitzEncoding<MHw8, CHUNK_SIZE_W8, NUM_CHUNKS_CHECKSUM_W8>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 8
@@ -212,13 +192,8 @@ pub mod lifetime_2_to_the_18 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw1 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W1,
-        >;
+        type THw1 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W1>;
         type PRFw1 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw1<const TARGET_SUM: usize> = TargetSumEncoding<MHw1, TARGET_SUM>;
         /// Instantiation with Lifetime 2^18, Target sum encoding, chunk size w = 1,
@@ -243,13 +218,8 @@ pub mod lifetime_2_to_the_18 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw2 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W2,
-        >;
+        type THw2 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W2>;
         type PRFw2 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw2<const TARGET_SUM: usize> = TargetSumEncoding<MHw2, TARGET_SUM>;
         /// Instantiation with Lifetime 2^18, Target sum encoding, chunk size w = 2,
@@ -274,13 +244,8 @@ pub mod lifetime_2_to_the_18 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw4 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W4,
-        >;
+        type THw4 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W4>;
         type PRFw4 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw4<const TARGET_SUM: usize> = TargetSumEncoding<MHw4, TARGET_SUM>;
         /// Instantiation with Lifetime 2^18, Target sum encoding, chunk size w = 4,
@@ -305,13 +270,8 @@ pub mod lifetime_2_to_the_18 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw8 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W8,
-        >;
+        type THw8 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W8>;
         type PRFw8 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw8<const TARGET_SUM: usize> = TargetSumEncoding<MHw8, TARGET_SUM>;
         /// Instantiation with Lifetime 2^18, Target sum encoding, chunk size w = 8,
@@ -426,13 +386,8 @@ pub mod lifetime_2_to_the_20 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw1 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W1,
-        >;
+        type THw1 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W1>;
         type PRFw1 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw1 = WinternitzEncoding<MHw1, CHUNK_SIZE_W1, NUM_CHUNKS_CHECKSUM_W1>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 1
@@ -453,13 +408,8 @@ pub mod lifetime_2_to_the_20 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw2 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W2,
-        >;
+        type THw2 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W2>;
         type PRFw2 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw2 = WinternitzEncoding<MHw2, CHUNK_SIZE_W2, NUM_CHUNKS_CHECKSUM_W2>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 2
@@ -480,13 +430,8 @@ pub mod lifetime_2_to_the_20 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw4 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W4,
-        >;
+        type THw4 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W4>;
         type PRFw4 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw4 = WinternitzEncoding<MHw4, CHUNK_SIZE_W4, NUM_CHUNKS_CHECKSUM_W4>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 4
@@ -508,13 +453,8 @@ pub mod lifetime_2_to_the_20 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw8 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE_W8,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W8,
-        >;
+        type THw8 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE_W8, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W8>;
         type PRFw8 = ShakePRFtoF<HASH_LEN_FE_W8>;
         type IEw8 = WinternitzEncoding<MHw8, CHUNK_SIZE_W8, NUM_CHUNKS_CHECKSUM_W8>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 8
@@ -605,13 +545,8 @@ pub mod lifetime_2_to_the_20 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw1 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W1,
-        >;
+        type THw1 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W1>;
         type PRFw1 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw1<const TARGET_SUM: usize> = TargetSumEncoding<MHw1, TARGET_SUM>;
         /// Instantiation with Lifetime 2^20, Target sum encoding, chunk size w = 1,
@@ -636,13 +571,8 @@ pub mod lifetime_2_to_the_20 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw2 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W2,
-        >;
+        type THw2 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W2>;
         type PRFw2 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw2<const TARGET_SUM: usize> = TargetSumEncoding<MHw2, TARGET_SUM>;
         /// Instantiation with Lifetime 2^20, Target sum encoding, chunk size w = 2,
@@ -667,13 +597,8 @@ pub mod lifetime_2_to_the_20 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw4 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W4,
-        >;
+        type THw4 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W4>;
         type PRFw4 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw4<const TARGET_SUM: usize> = TargetSumEncoding<MHw4, TARGET_SUM>;
         /// Instantiation with Lifetime 2^20, Target sum encoding, chunk size w = 4,
@@ -699,13 +624,8 @@ pub mod lifetime_2_to_the_20 {
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
-        type THw8 = PoseidonTweakHash<
-            PARAMETER_LEN,
-            HASH_LEN_FE_W8,
-            TWEAK_LEN_FE,
-            CAPACITY,
-            NUM_CHUNKS_W8,
-        >;
+        type THw8 =
+            PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE_W8, TWEAK_LEN_FE, CAPACITY, NUM_CHUNKS_W8>;
         type PRFw8 = ShakePRFtoF<HASH_LEN_FE_W8>;
         type IEw8<const TARGET_SUM: usize> = TargetSumEncoding<MHw8, TARGET_SUM>;
         /// Instantiation with Lifetime 2^20, Target sum encoding, chunk size w = 8,

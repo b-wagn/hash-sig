@@ -34,13 +34,11 @@ pub enum PoseidonTweak {
         epoch: u32,
         chain_index: u16,
         pos_in_chain: u16,
-    }
+    },
 }
 
-impl PoseidonTweak
-{
+impl PoseidonTweak {
     fn to_field_elements<const TWEAK_LEN: usize>(&self) -> [F; TWEAK_LEN] {
-
         // We first represent the entire tweak as one big integer
         let mut acc = match self {
             Self::TreeTweak {
@@ -210,13 +208,7 @@ impl<
         const CAPACITY: usize,
         const NUM_CHUNKS: usize,
     > TweakableHash
-    for PoseidonTweakHash<
-        PARAMETER_LEN,
-        HASH_LEN,
-        TWEAK_LEN,
-        CAPACITY,
-        NUM_CHUNKS,
-    >
+    for PoseidonTweakHash<PARAMETER_LEN, HASH_LEN, TWEAK_LEN, CAPACITY, NUM_CHUNKS>
 {
     type Parameter = [F; PARAMETER_LEN];
 
@@ -338,10 +330,10 @@ impl<
 }
 
 // Example instantiations
-pub type PoseidonTweak44 = PoseidonTweakHash< 4, 4, 3, 9, 128>;
+pub type PoseidonTweak44 = PoseidonTweakHash<4, 4, 3, 9, 128>;
 pub type PoseidonTweak37 = PoseidonTweakHash<3, 7, 3, 9, 128>;
-pub type PoseidonTweakW1L18 = PoseidonTweakHash< 5, 7, 2, 9, 163>;
-pub type PoseidonTweakW1L5 = PoseidonTweakHash< 5, 7, 2, 9, 163>;
+pub type PoseidonTweakW1L18 = PoseidonTweakHash<5, 7, 2, 9, 163>;
+pub type PoseidonTweakW1L5 = PoseidonTweakHash<5, 7, 2, 9, 163>;
 
 #[cfg(test)]
 mod tests {
