@@ -32,7 +32,6 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
     WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>
 {
     const NUM_CHUNKS_MESSAGE: usize = MH::DIMENSION;
-    const BASE: usize = 1 << CHUNK_SIZE;
     const NUM_CHUNKS: usize = Self::NUM_CHUNKS_MESSAGE + NUM_CHUNKS_CHECKSUM;
 }
 
@@ -47,7 +46,7 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
 
     const MAX_TRIES: usize = 1;
 
-    const BASE: usize = Self::BASE;
+    const BASE: usize = MH::BASE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
         MH::rand(rng)

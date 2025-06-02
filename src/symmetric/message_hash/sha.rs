@@ -68,6 +68,10 @@ impl<
     #[cfg(test)]
     fn internal_consistency_check() {
         assert!(
+            [1, 2, 4, 8].contains(&CHUNK_SIZE),
+            "SHA Message Hash: Chunk Size must be 1, 2, 4, or 8"
+        );
+        assert!(
             PARAMETER_LEN < 256 / 8,
             "SHA Message Hash: Parameter Length must be less than 256 bit"
         );
