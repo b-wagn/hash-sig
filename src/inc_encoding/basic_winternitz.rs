@@ -87,7 +87,7 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
     fn internal_consistency_check() {
         // chunk size must be 1, 2, 4, or 8
         assert!(
-            CHUNK_SIZE > 0 && CHUNK_SIZE <= 8 && 8 % CHUNK_SIZE == 0,
+            [1, 2, 4, 8].contains(&CHUNK_SIZE),
             "Winternitz Encoding: Chunk Size must be 1, 2, 4, or 8"
         );
 
