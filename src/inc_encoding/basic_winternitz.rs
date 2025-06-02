@@ -8,30 +8,36 @@ use super::IncomparableEncoding;
 /// Incomparable Encoding Scheme based on the basic
 /// Winternitz scheme, implemented from a given message hash.
 ///
+/// Note: this supports chunk sizes 1,2,4, and 8, and the
+/// base of the message hash must be 2 ** CHUNK_SIZE
 ///
 /// Unfortunately, Rust cannot deal with logarithms and ceils in constants.
 /// Therefore, the user needs to supply NUM_CHUNKS_CHECKSUM. This value can
 /// be computed before compilation with the following steps:
 /// ```ignore
 ///     base = 2 ** MH::CHUNK_SIZE
-///     num_chunks_message = MH::NUM_CHUNKS
+///     num_chunks_message = MH::DIMENSION
 ///     max_checksum = num_chunks_message * (base - 1)
 ///     num_chunks_checksum = 1 + math.floor(math.log(max_checksum, base))
 /// ```
-pub struct WinternitzEncoding<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize> {
+pub struct WinternitzEncoding<
+    MH: MessageHash,
+    const CHUNK_SIZE: usize,
+    const NUM_CHUNKS_CHECKSUM: usize,
+> {
     _marker_mh: std::marker::PhantomData<MH>,
 }
 
-impl<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize>
-    WinternitzEncoding<MH, NUM_CHUNKS_CHECKSUM>
+impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
+    WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>
 {
     const NUM_CHUNKS_MESSAGE: usize = MH::DIMENSION;
-    const BASE: usize = 1 << MH::CHUNK_SIZE;
+    const BASE: usize = 1 << CHUNK_SIZE;
     const NUM_CHUNKS: usize = Self::NUM_CHUNKS_MESSAGE + NUM_CHUNKS_CHECKSUM;
 }
 
-impl<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize> IncomparableEncoding
-    for WinternitzEncoding<MH, NUM_CHUNKS_CHECKSUM>
+impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
+    IncomparableEncoding for WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>
 {
     type Parameter = MH::Parameter;
 
@@ -64,7 +70,7 @@ impl<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize> IncomparableEncoding
 
         // we split the checksum into chunks, in little-endian
         let checksum_bytes = checksum.to_le_bytes();
-        let chunks_checksum = bytes_to_chunks(&checksum_bytes, MH::CHUNK_SIZE);
+        let chunks_checksum = bytes_to_chunks(&checksum_bytes, CHUNK_SIZE);
 
         // Assemble the resulting vector
         // we take all message chunks, followed by the checksum chunks.
@@ -81,17 +87,21 @@ impl<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize> IncomparableEncoding
     fn internal_consistency_check() {
         // chunk size must be 1, 2, 4, or 8
         assert!(
-            MH::CHUNK_SIZE > 0 && MH::CHUNK_SIZE <= 8 && 8 % MH::CHUNK_SIZE == 0,
+            CHUNK_SIZE > 0 && CHUNK_SIZE <= 8 && 8 % CHUNK_SIZE == 0,
             "Winternitz Encoding: Chunk Size must be 1, 2, 4, or 8"
         );
 
         // base must not be too large
         assert!(
-            MH::CHUNK_SIZE <= 16,
+            CHUNK_SIZE <= 16,
             "Winternitz Encoding: Base must be at most 2^16"
         );
 
-        // chunk size and base must be consistent
+        // chunk size and base of MH must be consistent
+        assert!(
+            MH::BASE == Self::BASE && MH::BASE == 1 << CHUNK_SIZE,
+            "Winternitz Encoding: Base and chunk size not consistent with message hash"
+        );
 
         // also check internal consistency of message hash
         MH::internal_consistency_check();

@@ -21,22 +21,20 @@ pub mod lifetime_2_to_the_18 {
         const CAPACITY: usize = 9;
 
         const CHUNK_SIZE_W1: usize = 1;
+        const BASE_W1: usize = 2;
         const NUM_CHUNKS_W1: usize = 155;
         const NUM_CHUNKS_CHECKSUM_W1: usize = 8;
-        const CEIL_LOG_NUM_CHAINS_W1: usize = 8;
+        const _CEIL_LOG_NUM_CHAINS_W1: usize = 8;
         type MHw1 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W1,
-            CHUNK_SIZE_W1,
+            BASE_W1,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw1 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W1,
-            CHUNK_SIZE_W1,
             PARAMETER_LEN,
             HASH_LEN_FE,
             TWEAK_LEN_FE,
@@ -44,28 +42,26 @@ pub mod lifetime_2_to_the_18 {
             NUM_CHUNKS_W1,
         >;
         type PRFw1 = ShakePRFtoF<HASH_LEN_FE>;
-        type IEw1 = WinternitzEncoding<MHw1, NUM_CHUNKS_CHECKSUM_W1>;
+        type IEw1 = WinternitzEncoding<MHw1, CHUNK_SIZE_W1, NUM_CHUNKS_CHECKSUM_W1>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 1
         pub type SIGWinternitzLifetime18W1 =
             GeneralizedXMSSSignatureScheme<PRFw1, IEw1, THw1, LOG_LIFETIME>;
 
         const CHUNK_SIZE_W2: usize = 2;
+        const BASE_W2: usize = 4;
         const NUM_CHUNKS_W2: usize = 78;
         const NUM_CHUNKS_CHECKSUM_W2: usize = 4;
-        const CEIL_LOG_NUM_CHAINS_W2: usize = 7;
+        const _CEIL_LOG_NUM_CHAINS_W2: usize = 7;
         type MHw2 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W2,
-            CHUNK_SIZE_W2,
+            BASE_W2,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw2 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W2,
-            CHUNK_SIZE_W2,
             PARAMETER_LEN,
             HASH_LEN_FE,
             TWEAK_LEN_FE,
@@ -73,28 +69,26 @@ pub mod lifetime_2_to_the_18 {
             NUM_CHUNKS_W2,
         >;
         type PRFw2 = ShakePRFtoF<HASH_LEN_FE>;
-        type IEw2 = WinternitzEncoding<MHw2, NUM_CHUNKS_CHECKSUM_W2>;
+        type IEw2 = WinternitzEncoding<MHw2, CHUNK_SIZE_W2, NUM_CHUNKS_CHECKSUM_W2>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 2
         pub type SIGWinternitzLifetime18W2 =
             GeneralizedXMSSSignatureScheme<PRFw2, IEw2, THw2, LOG_LIFETIME>;
 
         const CHUNK_SIZE_W4: usize = 4;
+        const BASE_W4: usize = 16;
         const NUM_CHUNKS_W4: usize = 39;
         const NUM_CHUNKS_CHECKSUM_W4: usize = 3;
-        const CEIL_LOG_NUM_CHAINS_W4: usize = 6;
+        const _CEIL_LOG_NUM_CHAINS_W4: usize = 6;
         type MHw4 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W4,
-            CHUNK_SIZE_W4,
+            BASE_W4,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw4 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W4,
-            CHUNK_SIZE_W4,
             PARAMETER_LEN,
             HASH_LEN_FE,
             TWEAK_LEN_FE,
@@ -102,28 +96,26 @@ pub mod lifetime_2_to_the_18 {
             NUM_CHUNKS_W4,
         >;
         type PRFw4 = ShakePRFtoF<HASH_LEN_FE>;
-        type IEw4 = WinternitzEncoding<MHw4, NUM_CHUNKS_CHECKSUM_W4>;
+        type IEw4 = WinternitzEncoding<MHw4, CHUNK_SIZE_W4, NUM_CHUNKS_CHECKSUM_W4>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 4
         pub type SIGWinternitzLifetime18W4 =
             GeneralizedXMSSSignatureScheme<PRFw4, IEw4, THw4, LOG_LIFETIME>;
 
         const CHUNK_SIZE_W8: usize = 8;
+        const BASE_W8: usize = 256;
         const NUM_CHUNKS_W8: usize = 20;
         const NUM_CHUNKS_CHECKSUM_W8: usize = 2;
-        const CEIL_LOG_NUM_CHAINS_W8: usize = 5;
+        const _CEIL_LOG_NUM_CHAINS_W8: usize = 5;
         type MHw8 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W8,
-            CHUNK_SIZE_W8,
+            BASE_W8,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw8 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W8,
-            CHUNK_SIZE_W8,
             PARAMETER_LEN,
             HASH_LEN_FE,
             TWEAK_LEN_FE,
@@ -131,7 +123,7 @@ pub mod lifetime_2_to_the_18 {
             NUM_CHUNKS_W8,
         >;
         type PRFw8 = ShakePRFtoF<HASH_LEN_FE>;
-        type IEw8 = WinternitzEncoding<MHw8, NUM_CHUNKS_CHECKSUM_W8>;
+        type IEw8 = WinternitzEncoding<MHw8, CHUNK_SIZE_W8, NUM_CHUNKS_CHECKSUM_W8>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 8
         pub type SIGWinternitzLifetime18W8 =
             GeneralizedXMSSSignatureScheme<PRFw8, IEw8, THw8, LOG_LIFETIME>;
@@ -207,22 +199,20 @@ pub mod lifetime_2_to_the_18 {
         const RAND_LEN: usize = 6;
         const CAPACITY: usize = 9;
 
-        const CHUNK_SIZE_W1: usize = 1;
+        const _CHUNK_SIZE_W1: usize = 1;
+        const BASE_W1: usize = 2;
         const NUM_CHUNKS_W1: usize = 155;
-        const CEIL_LOG_NUM_CHAINS_W1: usize = 8;
+        const _CEIL_LOG_NUM_CHAINS_W1: usize = 8;
         type MHw1 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W1,
-            CHUNK_SIZE_W1,
+            BASE_W1,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw1 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W1,
-            CHUNK_SIZE_W1,
             PARAMETER_LEN,
             HASH_LEN_FE,
             TWEAK_LEN_FE,
@@ -240,22 +230,20 @@ pub mod lifetime_2_to_the_18 {
         pub type SIGTargetSumLifetime18W1Off10 =
             GeneralizedXMSSSignatureScheme<PRFw1, IEw1<86>, THw1, LOG_LIFETIME>;
 
-        const CHUNK_SIZE_W2: usize = 2;
+        const _CHUNK_SIZE_W2: usize = 2;
+        const BASE_W2: usize = 4;
         const NUM_CHUNKS_W2: usize = 78;
-        const CEIL_LOG_NUM_CHAINS_W2: usize = 7;
+        const _CEIL_LOG_NUM_CHAINS_W2: usize = 7;
         type MHw2 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W2,
-            CHUNK_SIZE_W2,
+            BASE_W2,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw2 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W2,
-            CHUNK_SIZE_W2,
             PARAMETER_LEN,
             HASH_LEN_FE,
             TWEAK_LEN_FE,
@@ -273,22 +261,20 @@ pub mod lifetime_2_to_the_18 {
         pub type SIGTargetSumLifetime18W2Off10 =
             GeneralizedXMSSSignatureScheme<PRFw2, IEw2<129>, THw2, LOG_LIFETIME>;
 
-        const CHUNK_SIZE_W4: usize = 4;
+        const _CHUNK_SIZE_W4: usize = 4;
+        const BASE_W4: usize = 16;
         const NUM_CHUNKS_W4: usize = 39;
-        const CEIL_LOG_NUM_CHAINS_W4: usize = 6;
+        const _CEIL_LOG_NUM_CHAINS_W4: usize = 6;
         type MHw4 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W4,
-            CHUNK_SIZE_W4,
+            BASE_W4,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw4 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W4,
-            CHUNK_SIZE_W4,
             PARAMETER_LEN,
             HASH_LEN_FE,
             TWEAK_LEN_FE,
@@ -306,22 +292,20 @@ pub mod lifetime_2_to_the_18 {
         pub type SIGTargetSumLifetime18W4Off10 =
             GeneralizedXMSSSignatureScheme<PRFw4, IEw4<322>, THw4, LOG_LIFETIME>;
 
-        const CHUNK_SIZE_W8: usize = 8;
+        const _CHUNK_SIZE_W8: usize = 8;
+        const BASE_W8: usize = 256;
         const NUM_CHUNKS_W8: usize = 20;
-        const CEIL_LOG_NUM_CHAINS_W8: usize = 5;
+        const _CEIL_LOG_NUM_CHAINS_W8: usize = 5;
         type MHw8 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W8,
-            CHUNK_SIZE_W8,
+            BASE_W8,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw8 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W8,
-            CHUNK_SIZE_W8,
             PARAMETER_LEN,
             HASH_LEN_FE,
             TWEAK_LEN_FE,
@@ -429,22 +413,20 @@ pub mod lifetime_2_to_the_20 {
         const CAPACITY: usize = 9;
 
         const CHUNK_SIZE_W1: usize = 1;
+        const BASE_W1: usize = 2;
         const NUM_CHUNKS_W1: usize = 155;
         const NUM_CHUNKS_CHECKSUM_W1: usize = 8;
-        const CEIL_LOG_NUM_CHAINS_W1: usize = 8;
+        const _CEIL_LOG_NUM_CHAINS_W1: usize = 8;
         type MHw1 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W1,
-            CHUNK_SIZE_W1,
+            BASE_W1,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw1 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W1,
-            CHUNK_SIZE_W1,
             PARAMETER_LEN,
             HASH_LEN_FE,
             TWEAK_LEN_FE,
@@ -452,28 +434,26 @@ pub mod lifetime_2_to_the_20 {
             NUM_CHUNKS_W1,
         >;
         type PRFw1 = ShakePRFtoF<HASH_LEN_FE>;
-        type IEw1 = WinternitzEncoding<MHw1, NUM_CHUNKS_CHECKSUM_W1>;
+        type IEw1 = WinternitzEncoding<MHw1, CHUNK_SIZE_W1, NUM_CHUNKS_CHECKSUM_W1>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 1
         pub type SIGWinternitzLifetime20W1 =
             GeneralizedXMSSSignatureScheme<PRFw1, IEw1, THw1, LOG_LIFETIME>;
 
         const CHUNK_SIZE_W2: usize = 2;
+        const BASE_W2: usize = 4;
         const NUM_CHUNKS_W2: usize = 78;
         const NUM_CHUNKS_CHECKSUM_W2: usize = 4;
-        const CEIL_LOG_NUM_CHAINS_W2: usize = 7;
+        const _CEIL_LOG_NUM_CHAINS_W2: usize = 7;
         type MHw2 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W2,
-            CHUNK_SIZE_W2,
+            BASE_W2,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw2 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W2,
-            CHUNK_SIZE_W2,
             PARAMETER_LEN,
             HASH_LEN_FE,
             TWEAK_LEN_FE,
@@ -481,28 +461,26 @@ pub mod lifetime_2_to_the_20 {
             NUM_CHUNKS_W2,
         >;
         type PRFw2 = ShakePRFtoF<HASH_LEN_FE>;
-        type IEw2 = WinternitzEncoding<MHw2, NUM_CHUNKS_CHECKSUM_W2>;
+        type IEw2 = WinternitzEncoding<MHw2, CHUNK_SIZE_W2, NUM_CHUNKS_CHECKSUM_W2>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 2
         pub type SIGWinternitzLifetime20W2 =
             GeneralizedXMSSSignatureScheme<PRFw2, IEw2, THw2, LOG_LIFETIME>;
 
         const CHUNK_SIZE_W4: usize = 4;
+        const BASE_W4: usize = 16;
         const NUM_CHUNKS_W4: usize = 39;
         const NUM_CHUNKS_CHECKSUM_W4: usize = 3;
-        const CEIL_LOG_NUM_CHAINS_W4: usize = 6;
+        const _CEIL_LOG_NUM_CHAINS_W4: usize = 6;
         type MHw4 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W4,
-            CHUNK_SIZE_W4,
+            BASE_W4,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw4 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W4,
-            CHUNK_SIZE_W4,
             PARAMETER_LEN,
             HASH_LEN_FE,
             TWEAK_LEN_FE,
@@ -510,29 +488,27 @@ pub mod lifetime_2_to_the_20 {
             NUM_CHUNKS_W4,
         >;
         type PRFw4 = ShakePRFtoF<HASH_LEN_FE>;
-        type IEw4 = WinternitzEncoding<MHw4, NUM_CHUNKS_CHECKSUM_W4>;
+        type IEw4 = WinternitzEncoding<MHw4, CHUNK_SIZE_W4, NUM_CHUNKS_CHECKSUM_W4>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 4
         pub type SIGWinternitzLifetime20W4 =
             GeneralizedXMSSSignatureScheme<PRFw4, IEw4, THw4, LOG_LIFETIME>;
 
         const HASH_LEN_FE_W8: usize = 8;
         const CHUNK_SIZE_W8: usize = 8;
+        const BASE_W8: usize = 256;
         const NUM_CHUNKS_W8: usize = 20;
         const NUM_CHUNKS_CHECKSUM_W8: usize = 2;
-        const CEIL_LOG_NUM_CHAINS_W8: usize = 5;
+        const _CEIL_LOG_NUM_CHAINS_W8: usize = 5;
         type MHw8 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W8,
-            CHUNK_SIZE_W8,
+            BASE_W8,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw8 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W8,
-            CHUNK_SIZE_W8,
             PARAMETER_LEN,
             HASH_LEN_FE_W8,
             TWEAK_LEN_FE,
@@ -540,7 +516,7 @@ pub mod lifetime_2_to_the_20 {
             NUM_CHUNKS_W8,
         >;
         type PRFw8 = ShakePRFtoF<HASH_LEN_FE_W8>;
-        type IEw8 = WinternitzEncoding<MHw8, NUM_CHUNKS_CHECKSUM_W8>;
+        type IEw8 = WinternitzEncoding<MHw8, CHUNK_SIZE_W8, NUM_CHUNKS_CHECKSUM_W8>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 8
         pub type SIGWinternitzLifetime20W8 =
             GeneralizedXMSSSignatureScheme<PRFw8, IEw8, THw8, LOG_LIFETIME>;
@@ -616,22 +592,20 @@ pub mod lifetime_2_to_the_20 {
         const RAND_LEN: usize = 6;
         const CAPACITY: usize = 9;
 
-        const CHUNK_SIZE_W1: usize = 1;
+        const _CHUNK_SIZE_W1: usize = 1;
+        const BASE_W1: usize = 2;
         const NUM_CHUNKS_W1: usize = 155;
-        const CEIL_LOG_NUM_CHAINS_W1: usize = 8;
+        const _CEIL_LOG_NUM_CHAINS_W1: usize = 8;
         type MHw1 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W1,
-            CHUNK_SIZE_W1,
+            BASE_W1,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw1 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W1,
-            CHUNK_SIZE_W1,
             PARAMETER_LEN,
             HASH_LEN_FE,
             TWEAK_LEN_FE,
@@ -649,22 +623,20 @@ pub mod lifetime_2_to_the_20 {
         pub type SIGTargetSumLifetime20W1Off10 =
             GeneralizedXMSSSignatureScheme<PRFw1, IEw1<86>, THw1, LOG_LIFETIME>;
 
-        const CHUNK_SIZE_W2: usize = 2;
+        const _CHUNK_SIZE_W2: usize = 2;
+        const BASE_W2: usize = 4;
         const NUM_CHUNKS_W2: usize = 78;
-        const CEIL_LOG_NUM_CHAINS_W2: usize = 7;
+        const _CEIL_LOG_NUM_CHAINS_W2: usize = 7;
         type MHw2 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W2,
-            CHUNK_SIZE_W2,
+            BASE_W2,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw2 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W2,
-            CHUNK_SIZE_W2,
             PARAMETER_LEN,
             HASH_LEN_FE,
             TWEAK_LEN_FE,
@@ -682,22 +654,20 @@ pub mod lifetime_2_to_the_20 {
         pub type SIGTargetSumLifetime20W2Off10 =
             GeneralizedXMSSSignatureScheme<PRFw2, IEw2<129>, THw2, LOG_LIFETIME>;
 
-        const CHUNK_SIZE_W4: usize = 4;
+        const _CHUNK_SIZE_W4: usize = 4;
+        const BASE_W4: usize = 16;
         const NUM_CHUNKS_W4: usize = 39;
-        const CEIL_LOG_NUM_CHAINS_W4: usize = 6;
+        const _CEIL_LOG_NUM_CHAINS_W4: usize = 6;
         type MHw4 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W4,
-            CHUNK_SIZE_W4,
+            BASE_W4,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw4 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W4,
-            CHUNK_SIZE_W4,
             PARAMETER_LEN,
             HASH_LEN_FE,
             TWEAK_LEN_FE,
@@ -716,22 +686,20 @@ pub mod lifetime_2_to_the_20 {
             GeneralizedXMSSSignatureScheme<PRFw4, IEw4<322>, THw4, LOG_LIFETIME>;
 
         const HASH_LEN_FE_W8: usize = 8;
-        const CHUNK_SIZE_W8: usize = 8;
+        const _CHUNK_SIZE_W8: usize = 8;
+        const BASE_W8: usize = 256;
         const NUM_CHUNKS_W8: usize = 20;
-        const CEIL_LOG_NUM_CHAINS_W8: usize = 5;
+        const _CEIL_LOG_NUM_CHAINS_W8: usize = 5;
         type MHw8 = PoseidonMessageHash<
             PARAMETER_LEN,
             RAND_LEN,
             MSG_HASH_LEN_FE,
             NUM_CHUNKS_W8,
-            CHUNK_SIZE_W8,
+            BASE_W8,
             TWEAK_LEN_FE,
             MSG_LEN_FE,
         >;
         type THw8 = PoseidonTweakHash<
-            LOG_LIFETIME,
-            CEIL_LOG_NUM_CHAINS_W8,
-            CHUNK_SIZE_W8,
             PARAMETER_LEN,
             HASH_LEN_FE_W8,
             TWEAK_LEN_FE,

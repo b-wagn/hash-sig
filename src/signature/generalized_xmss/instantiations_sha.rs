@@ -21,7 +21,7 @@ pub mod lifetime_2_to_the_18 {
         const HASH_LEN_W1: usize = 25;
         type THw1 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W1>;
         type PRFw1 = ShaPRF<HASH_LEN_W1>;
-        type IEw1 = WinternitzEncoding<MHw1, 8>;
+        type IEw1 = WinternitzEncoding<MHw1, CHUNK_SIZE_W1, 8>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 1
         pub type SIGWinternitzLifetime18W1 =
             GeneralizedXMSSSignatureScheme<PRFw1, IEw1, THw1, LOG_LIFETIME>;
@@ -32,7 +32,7 @@ pub mod lifetime_2_to_the_18 {
         const HASH_LEN_W2: usize = 25;
         type THw2 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W2>;
         type PRFw2 = ShaPRF<HASH_LEN_W2>;
-        type IEw2 = WinternitzEncoding<MHw2, 4>;
+        type IEw2 = WinternitzEncoding<MHw2, CHUNK_SIZE_W2, 4>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 2
         pub type SIGWinternitzLifetime18W2 =
             GeneralizedXMSSSignatureScheme<PRFw2, IEw2, THw2, LOG_LIFETIME>;
@@ -43,7 +43,7 @@ pub mod lifetime_2_to_the_18 {
         const HASH_LEN_W4: usize = 26;
         type THw4 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W4>;
         type PRFw4 = ShaPRF<HASH_LEN_W4>;
-        type IEw4 = WinternitzEncoding<MHw4, 3>;
+        type IEw4 = WinternitzEncoding<MHw4, CHUNK_SIZE_W4, 3>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 4
         pub type SIGWinternitzLifetime18W4 =
             GeneralizedXMSSSignatureScheme<PRFw4, IEw4, THw4, LOG_LIFETIME>;
@@ -54,7 +54,7 @@ pub mod lifetime_2_to_the_18 {
         const HASH_LEN_W8: usize = 28;
         type THw8 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W8>;
         type PRFw8 = ShaPRF<HASH_LEN_W8>;
-        type IEw8 = WinternitzEncoding<MHw8, 2>;
+        type IEw8 = WinternitzEncoding<MHw8, CHUNK_SIZE_W8, 2>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 8
         pub type SIGWinternitzLifetime18W8 =
             GeneralizedXMSSSignatureScheme<PRFw8, IEw8, THw8, LOG_LIFETIME>;
@@ -280,7 +280,7 @@ pub mod lifetime_2_to_the_20 {
         const HASH_LEN_W1: usize = 25;
         type THw1 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W1>;
         type PRFw1 = ShaPRF<HASH_LEN_W1>;
-        type IEw1 = WinternitzEncoding<MHw1, 8>;
+        type IEw1 = WinternitzEncoding<MHw1, CHUNK_SIZE_W1, 8>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 1
         pub type SIGWinternitzLifetime20W1 =
             GeneralizedXMSSSignatureScheme<PRFw1, IEw1, THw1, LOG_LIFETIME>;
@@ -291,7 +291,7 @@ pub mod lifetime_2_to_the_20 {
         const HASH_LEN_W2: usize = 26;
         type THw2 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W2>;
         type PRFw2 = ShaPRF<HASH_LEN_W2>;
-        type IEw2 = WinternitzEncoding<MHw2, 4>;
+        type IEw2 = WinternitzEncoding<MHw2, CHUNK_SIZE_W2, 4>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 2
         pub type SIGWinternitzLifetime20W2 =
             GeneralizedXMSSSignatureScheme<PRFw2, IEw2, THw2, LOG_LIFETIME>;
@@ -302,7 +302,7 @@ pub mod lifetime_2_to_the_20 {
         const HASH_LEN_W4: usize = 26;
         type THw4 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W4>;
         type PRFw4 = ShaPRF<HASH_LEN_W4>;
-        type IEw4 = WinternitzEncoding<MHw4, 3>;
+        type IEw4 = WinternitzEncoding<MHw4, CHUNK_SIZE_W4, 3>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 4
         pub type SIGWinternitzLifetime20W4 =
             GeneralizedXMSSSignatureScheme<PRFw4, IEw4, THw4, LOG_LIFETIME>;
@@ -313,7 +313,7 @@ pub mod lifetime_2_to_the_20 {
         const HASH_LEN_W8: usize = 28;
         type THw8 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W8>;
         type PRFw8 = ShaPRF<HASH_LEN_W8>;
-        type IEw8 = WinternitzEncoding<MHw8, 2>;
+        type IEw8 = WinternitzEncoding<MHw8, CHUNK_SIZE_W8, 2>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 8
         pub type SIGWinternitzLifetime20W8 =
             GeneralizedXMSSSignatureScheme<PRFw8, IEw8, THw8, LOG_LIFETIME>;

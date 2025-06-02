@@ -25,11 +25,7 @@ const MODULUS_128: u128 = FqConfig::MODULUS.0[0] as u128;
 const DOMAIN_PARAMETERS_LENGTH: usize = 4;
 
 /// Enum to implement tweaks.
-pub enum PoseidonTweak<
-    const LOG_LIFETIME: usize,
-    const CEIL_LOG_NUM_CHAINS: usize,
-    const CHUNK_SIZE: usize,
-> {
+pub enum PoseidonTweak {
     TreeTweak {
         level: u8,
         pos_in_level: u32,
@@ -38,20 +34,12 @@ pub enum PoseidonTweak<
         epoch: u32,
         chain_index: u16,
         pos_in_chain: u16,
-    },
-    _Marker(std::marker::PhantomData<F>),
+    }
 }
 
-impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SIZE: usize>
-    PoseidonTweak<LOG_LIFETIME, CEIL_LOG_NUM_CHAINS, CHUNK_SIZE>
+impl PoseidonTweak
 {
     fn to_field_elements<const TWEAK_LEN: usize>(&self) -> [F; TWEAK_LEN] {
-        // we need to convert from integers to field elements,
-        // Note: taking into account the constants
-        // LOG_LIFETIME, CEIL_LOG_NUM_CHAINS, CHUNK_SIZE,
-        // we know that the tweak can be represented using at most
-        // LOG_LIFETIME + CEIL_LOG_NUM_CHAINS + CHUNK_SIZE many
-        // bits.
 
         // We first represent the entire tweak as one big integer
         let mut acc = match self {
@@ -73,7 +61,6 @@ impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SI
                     | ((*pos_in_chain as u128) << 8)
                     | (TWEAK_SEPARATOR_FOR_CHAIN_HASH as u128)
             }
-            _ => 0,
         };
 
         // Get the modulus
@@ -209,9 +196,6 @@ pub fn poseidon_sponge<const OUT_LEN: usize>(
 /// Note: HASH_LEN, TWEAK_LEN, CAPACITY, and PARAMETER_LEN must
 /// be given in the unit "number of field elements".
 pub struct PoseidonTweakHash<
-    const LOG_LIFETIME: usize,
-    const CEIL_LOG_NUM_CHAINS: usize,
-    const CHUNK_SIZE: usize,
     const PARAMETER_LEN: usize,
     const HASH_LEN: usize,
     const TWEAK_LEN: usize,
@@ -220,9 +204,6 @@ pub struct PoseidonTweakHash<
 >;
 
 impl<
-        const LOG_LIFETIME: usize,
-        const CEIL_LOG_NUM_CHAINS: usize,
-        const CHUNK_SIZE: usize,
         const PARAMETER_LEN: usize,
         const HASH_LEN: usize,
         const TWEAK_LEN: usize,
@@ -230,9 +211,6 @@ impl<
         const NUM_CHUNKS: usize,
     > TweakableHash
     for PoseidonTweakHash<
-        LOG_LIFETIME,
-        CEIL_LOG_NUM_CHAINS,
-        CHUNK_SIZE,
         PARAMETER_LEN,
         HASH_LEN,
         TWEAK_LEN,
@@ -242,7 +220,7 @@ impl<
 {
     type Parameter = [F; PARAMETER_LEN];
 
-    type Tweak = PoseidonTweak<LOG_LIFETIME, CEIL_LOG_NUM_CHAINS, CHUNK_SIZE>;
+    type Tweak = PoseidonTweak;
 
     type Domain = [F; HASH_LEN];
 
@@ -360,10 +338,10 @@ impl<
 }
 
 // Example instantiations
-pub type PoseidonTweak44 = PoseidonTweakHash<20, 8, 2, 4, 4, 3, 9, 128>;
-pub type PoseidonTweak37 = PoseidonTweakHash<20, 8, 2, 3, 7, 3, 9, 128>;
-pub type PoseidonTweakW1L18 = PoseidonTweakHash<18, 8, 1, 5, 7, 2, 9, 163>;
-pub type PoseidonTweakW1L5 = PoseidonTweakHash<5, 8, 1, 5, 7, 2, 9, 163>;
+pub type PoseidonTweak44 = PoseidonTweakHash< 4, 4, 3, 9, 128>;
+pub type PoseidonTweak37 = PoseidonTweakHash<3, 7, 3, 9, 128>;
+pub type PoseidonTweakW1L18 = PoseidonTweakHash< 5, 7, 2, 9, 163>;
+pub type PoseidonTweakW1L5 = PoseidonTweakHash< 5, 7, 2, 9, 163>;
 
 #[cfg(test)]
 mod tests {
@@ -493,7 +471,7 @@ mod tests {
         ];
 
         // Check actual output
-        let tweak = PoseidonTweak::<0, 0, 0>::TreeTweak {
+        let tweak = PoseidonTweak::TreeTweak {
             level,
             pos_in_level,
         };
@@ -526,7 +504,7 @@ mod tests {
         ];
 
         // Check actual output
-        let tweak = PoseidonTweak::<0, 0, 0>::ChainTweak {
+        let tweak = PoseidonTweak::ChainTweak {
             epoch,
             chain_index,
             pos_in_chain,
@@ -550,7 +528,7 @@ mod tests {
             F::from((&tweak_bigint / (&p * &p)) % &p),
         ];
 
-        let tweak = PoseidonTweak::<0, 0, 0>::TreeTweak {
+        let tweak = PoseidonTweak::TreeTweak {
             level,
             pos_in_level,
         };
@@ -577,7 +555,7 @@ mod tests {
             F::from((&tweak_bigint / (&p * &p)) % &p),
         ];
 
-        let tweak = PoseidonTweak::<0, 0, 0>::ChainTweak {
+        let tweak = PoseidonTweak::ChainTweak {
             epoch,
             chain_index,
             pos_in_chain,
@@ -642,7 +620,7 @@ mod tests {
         for _ in 0..100_000 {
             let level = rng.gen();
             let pos_in_level = rng.gen();
-            let tweak_encoding = PoseidonTweak::<0, 0, 0>::TreeTweak {
+            let tweak_encoding = PoseidonTweak::TreeTweak {
                 level,
                 pos_in_level,
             }
@@ -669,7 +647,7 @@ mod tests {
         let level = rng.gen();
         for _ in 0..10_000 {
             let pos_in_level = rng.gen();
-            let tweak_encoding = PoseidonTweak::<0, 0, 0>::TreeTweak {
+            let tweak_encoding = PoseidonTweak::TreeTweak {
                 level,
                 pos_in_level,
             }
@@ -689,7 +667,7 @@ mod tests {
         let pos_in_level = rng.gen();
         for _ in 0..10_000 {
             let level = rng.gen();
-            let tweak_encoding = PoseidonTweak::<0, 0, 0>::TreeTweak {
+            let tweak_encoding = PoseidonTweak::TreeTweak {
                 level,
                 pos_in_level,
             }
@@ -721,7 +699,7 @@ mod tests {
 
             let input = (epoch, chain_index, pos_in_chain);
 
-            let tweak_encoding = PoseidonTweak::<0, 0, 0>::ChainTweak {
+            let tweak_encoding = PoseidonTweak::ChainTweak {
                 epoch,
                 chain_index,
                 pos_in_chain,
@@ -746,7 +724,7 @@ mod tests {
 
             let input = (chain_index, pos_in_chain);
 
-            let tweak_encoding = PoseidonTweak::<0, 0, 0>::ChainTweak {
+            let tweak_encoding = PoseidonTweak::ChainTweak {
                 epoch,
                 chain_index,
                 pos_in_chain,
@@ -771,7 +749,7 @@ mod tests {
 
             let input = (epoch, pos_in_chain);
 
-            let tweak_encoding = PoseidonTweak::<0, 0, 0>::ChainTweak {
+            let tweak_encoding = PoseidonTweak::ChainTweak {
                 epoch,
                 chain_index,
                 pos_in_chain,
@@ -796,7 +774,7 @@ mod tests {
 
             let input = (epoch, chain_index);
 
-            let tweak_encoding = PoseidonTweak::<0, 0, 0>::ChainTweak {
+            let tweak_encoding = PoseidonTweak::ChainTweak {
                 epoch,
                 chain_index,
                 pos_in_chain,

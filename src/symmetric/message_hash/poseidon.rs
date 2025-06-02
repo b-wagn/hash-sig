@@ -50,11 +50,11 @@ fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
 
 /// Function to decode a vector of field elements into
 /// a vector of NUM_CHUNKS many chunks. One chunk is
-/// between 0 and 2^CHUNK_SIZE - 1 (inclusive).
-/// CHUNK_SIZE up to 8 (inclusive) is supported
-fn decode_to_chunks<const NUM_CHUNKS: usize, const CHUNK_SIZE: usize, const HASH_LEN_FE: usize>(
+/// between 0 and BASE - 1 (inclusive).
+/// BASE up to 2^16 (inclusive) is supported
+fn decode_to_chunks<const NUM_CHUNKS: usize, const BASE: usize, const HASH_LEN_FE: usize>(
     field_elements: &[F; HASH_LEN_FE],
-) -> [u8; NUM_CHUNKS] {
+) -> [u16; NUM_CHUNKS] {
     // Combine field elements into one big integer
     let p = BigUint::from(FqConfig::MODULUS);
     let mut acc = BigUint::ZERO;
@@ -62,11 +62,10 @@ fn decode_to_chunks<const NUM_CHUNKS: usize, const CHUNK_SIZE: usize, const HASH
         acc = &acc * &p + BigUint::from(fe.into_bigint());
     }
 
-    // Convert to base-(2^CHUNK_SIZE)
-    let base = (1 << CHUNK_SIZE) as u16;
+    // Convert to base-BASE
     std::array::from_fn(|_| {
-        let chunk = (&acc % base).try_into().unwrap();
-        acc /= base;
+        let chunk = (&acc % BASE).try_into().unwrap();
+        acc /= BASE;
         chunk
     })
 }
@@ -79,13 +78,13 @@ fn decode_to_chunks<const NUM_CHUNKS: usize, const CHUNK_SIZE: usize, const HASH
 /// HASH_LEN_FE specifies how many field elements the
 /// hash output needs to be before it is decoded to chunks.
 ///
-/// CHUNK_SIZE has to be 1,2,4, or 8.
+/// BASE must be at most 2^16
 pub struct PoseidonMessageHash<
     const PARAMETER_LEN: usize,
     const RAND_LEN: usize,
     const HASH_LEN_FE: usize,
     const NUM_CHUNKS: usize,
-    const CHUNK_SIZE: usize,
+    const BASE: usize,
     const TWEAK_LEN_FE: usize,
     const MSG_LEN_FE: usize,
 >;
@@ -95,7 +94,7 @@ impl<
         const RAND_LEN: usize,
         const HASH_LEN_FE: usize,
         const NUM_CHUNKS: usize,
-        const CHUNK_SIZE: usize,
+        const BASE: usize,
         const TWEAK_LEN_FE: usize,
         const MSG_LEN_FE: usize,
     > MessageHash
@@ -104,7 +103,7 @@ impl<
         RAND_LEN,
         HASH_LEN_FE,
         NUM_CHUNKS,
-        CHUNK_SIZE,
+        BASE,
         TWEAK_LEN_FE,
         MSG_LEN_FE,
     >
@@ -115,7 +114,7 @@ impl<
 
     const DIMENSION: usize = NUM_CHUNKS;
 
-    const CHUNK_SIZE: usize = CHUNK_SIZE;
+    const BASE: usize = BASE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
         std::array::from_fn(|_| F::rand(rng))
@@ -126,7 +125,7 @@ impl<
         epoch: u32,
         randomness: &Self::Randomness,
         message: &[u8; MESSAGE_LENGTH],
-    ) -> Vec<u8> {
+    ) -> Vec<u16> {
         // We need a Poseidon instance
 
         // Note: This block should be changed if we decide to support other Poseidon
@@ -149,7 +148,7 @@ impl<
         let hash_fe = poseidon_compress(&instance, &combined_input);
 
         // decode field elements into chunks and return them
-        decode_to_chunks::<NUM_CHUNKS, CHUNK_SIZE, HASH_LEN_FE>(&hash_fe).to_vec()
+        decode_to_chunks::<NUM_CHUNKS, BASE, HASH_LEN_FE>(&hash_fe).to_vec()
     }
 
     #[cfg(test)]
@@ -158,6 +157,12 @@ impl<
         assert!(
             BigUint::from(FqConfig::MODULUS) < BigUint::from(u64::MAX),
             "The prime field used is too large"
+        );
+
+        // Base check
+        assert!(
+            Self::BASE <= 1 << 16,
+            "Poseidon Message Hash: Base must be at most 2^16"
         );
 
         // message check
@@ -191,16 +196,17 @@ impl<
                 .parse()
                 .unwrap(),
         ) * f64::from(HASH_LEN_FE as u32);
+        let chunk_size = f64::ceil(f64::log2(Self::BASE as f64)) as usize;
         assert!(
-            hash_bits <= f64::from((NUM_CHUNKS * CHUNK_SIZE) as u32),
-            "Poseidon Message hash. Parameter mismatch: not enough chunks to decode the hash"
+            hash_bits <= f64::from((NUM_CHUNKS * chunk_size) as u32),
+            "Poseidon Message hash. Parameter mismatch: not enough bits to decode the hash"
         );
     }
 }
 
 // Example instantiations
-pub type PoseidonMessageHash445 = PoseidonMessageHash<4, 4, 5, 128, 2, 2, 9>;
-pub type PoseidonMessageHashW1 = PoseidonMessageHash<5, 5, 5, 163, 1, 2, 9>;
+pub type PoseidonMessageHash445 = PoseidonMessageHash<4, 4, 5, 128, 4, 2, 9>;
+pub type PoseidonMessageHashW1 = PoseidonMessageHash<5, 5, 5, 163, 2, 2, 9>;
 
 #[cfg(test)]
 mod tests {
@@ -282,8 +288,8 @@ mod tests {
         let field_elements = [F::ZERO; 5];
 
         // Should decode to all zero chunks
-        let expected = [0u8; 8];
-        let result = decode_to_chunks::<8, 4, 5>(&field_elements);
+        let expected = [0u16; 8];
+        let result = decode_to_chunks::<8, 16, 5>(&field_elements);
         assert_eq!(result, expected);
     }
 
@@ -310,7 +316,7 @@ mod tests {
             acc /= 16u8;
         }
 
-        let result = decode_to_chunks::<4, 4, 2>(&input);
+        let result = decode_to_chunks::<4, 16, 2>(&input);
         assert_eq!(result, expected);
     }
 
@@ -334,39 +340,6 @@ mod tests {
         ];
 
         let result = encode_epoch::<4>(epoch);
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn test_decode_to_chunks_max_value() {
-        // Field modulus
-        let p = BigUint::from(FqConfig::MODULUS);
-
-        // Use all field elements set to p - 1
-        let input = [F::from(p.clone() - 1u32); 3];
-
-        // Compute combined input_uint:
-        //
-        // input_uint = (p - 1) + (p - 1) * p + (p - 1) * p^2
-        //           = (p^2 + p + 1) * (p - 1)
-        //
-        // We’ll expand it:
-        // = (p - 1) * (p^2 + p + 1)
-        // = p^3 - 1
-
-        let p2 = &p * &p;
-        let p3 = &p * &p2;
-        let input_uint = &p3 - 1u32;
-
-        // CHUNK_SIZE = 8 → max = 256
-        let mut acc = input_uint.clone();
-        let mut expected = [0u8; 8];
-        for i in 0..8 {
-            expected[i] = (&acc % 256u32).try_into().unwrap();
-            acc /= 256u32;
-        }
-
-        let result = decode_to_chunks::<8, 8, 3>(&input);
         assert_eq!(result, expected);
     }
 
@@ -506,9 +479,43 @@ mod tests {
     }
 
     #[test]
+    fn test_decode_to_chunks_max_value() {
+        // Field modulus
+        let p = BigUint::from(FqConfig::MODULUS);
+
+        // Use all field elements set to p - 1
+        let input = [F::from(p.clone() - 1u32); 3];
+
+        // Compute combined input_uint:
+        //
+        // input_uint = (p - 1) + (p - 1) * p + (p - 1) * p^2
+        //           = (p^2 + p + 1) * (p - 1)
+        //
+        // We’ll expand it:
+        // = (p - 1) * (p^2 + p + 1)
+        // = p^3 - 1
+
+        let p2 = &p * &p;
+        let p3 = &p * &p2;
+        let input_uint = &p3 - 1u32;
+
+        // CHUNK_SIZE = 8 / BASE = 256
+        let mut acc = input_uint.clone();
+        let mut expected = [0u16; 8];
+        for i in 0..8 {
+            expected[i] = (&acc % 256u32).try_into().unwrap();
+            acc /= 256u32;
+        }
+
+        let result = decode_to_chunks::<8, 256, 3>(&input);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
     fn test_decode_to_chunks_roundtrip_consistency() {
         const HASH_LEN_FE: usize = 4;
-        const CHUNK_SIZE: usize = 4; // 4 bits => base 16
+        const CHUNK_SIZE: usize = 4;
+        const BASE: usize = 1 << CHUNK_SIZE; // 16
         const NUM_CHUNKS: usize = 32;
 
         let mut rng = thread_rng();
@@ -525,10 +532,10 @@ mod tests {
         }
 
         // Decode to chunks
-        let chunks = decode_to_chunks::<NUM_CHUNKS, CHUNK_SIZE, HASH_LEN_FE>(&input_field_elements);
+        let chunks = decode_to_chunks::<NUM_CHUNKS, BASE, HASH_LEN_FE>(&input_field_elements);
 
-        // Reconstruct bigint from chunks using little-endian base-(2^CHUNK_SIZE)
-        let base = BigUint::from(1u8 << CHUNK_SIZE); // base = 16
+        // Reconstruct bigint from chunks using little-endian base-(BASE)
+        let base = BigUint::from(BASE);
         let mut reconstructed_bigint = BigUint::zero();
         for (i, &chunk) in chunks.iter().enumerate() {
             reconstructed_bigint += BigUint::from(chunk) * base.pow(i as u32);

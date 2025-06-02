@@ -11,8 +11,8 @@ use super::IncomparableEncoding;
 /// It is recommended to set it close to the expected sum, which is:
 ///
 /// ```ignore
-///     const MAX_CHUNK_VALUE: usize = (1 << MH::CHUNK_SIZE) - 1
-///     const EXPECTED_SUM: usize = MH::NUM_CHUNKS * Self::MAX_CHUNK_VALUE / 2
+///     const MAX_CHUNK_VALUE: usize = MH::BASE - 1
+///     const EXPECTED_SUM: usize = MH::DIMENSION * MAX_CHUNK_VALUE / 2
 /// ```
 pub struct TargetSumEncoding<MH: MessageHash, const TARGET_SUM: usize> {
     _marker_mh: std::marker::PhantomData<MH>,
@@ -37,7 +37,7 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
     /// extensive experiments with concrete hash functions.
     const MAX_TRIES: usize = 100000;
 
-    const BASE: usize = 1 << MH::CHUNK_SIZE;
+    const BASE: usize = MH::BASE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
         MH::rand(rng)
@@ -51,13 +51,12 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
     ) -> Result<Vec<u16>, super::EncodingError> {
         // apply the message hash first to get chunks
         let chunks = MH::apply(parameter, epoch, randomness, message);
-        let chunks_u16: Vec<u16> = chunks.iter().map(|&x| x as u16).collect();
         let chunks_u32: Vec<u32> = chunks.iter().map(|&x| x as u32).collect();
 
         let sum: u32 = chunks_u32.iter().sum();
         // only output something if the chunks sum to the target sum
         if sum as usize == Self::TARGET_SUM {
-            Ok(chunks_u16)
+            Ok(chunks)
         } else {
             Err(())
         }
@@ -65,15 +64,9 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
 
     #[cfg(test)]
     fn internal_consistency_check() {
-        // chunk size must be 1, 2, 4, or 8
-        assert!(
-            MH::CHUNK_SIZE > 0 && MH::CHUNK_SIZE <= 8 && 8 % MH::CHUNK_SIZE == 0,
-            "Target Sum Encoding: Chunk Size must be 1, 2, 4, or 8"
-        );
-
         // base must not be too large
         assert!(
-            MH::CHUNK_SIZE <= 16,
+            Self::BASE <= 1 << 16,
             "Target Sum Encoding: Base must be at most 2^16"
         );
 

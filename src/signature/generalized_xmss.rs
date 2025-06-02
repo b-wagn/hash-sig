@@ -304,9 +304,9 @@ mod tests {
         type PRF = ShaPRF<24>;
         type TH = ShaTweak192192;
         type MH = ShaMessageHash192x3;
-        const _CHUNK_SIZE: usize = 2;
+        const CHUNK_SIZE: usize = 4;
         const NUM_CHUNKS_CHECKSUM: usize = 3;
-        type IE = WinternitzEncoding<MH, NUM_CHUNKS_CHECKSUM>;
+        type IE = WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>;
         const LOG_LIFETIME: usize = 9;
         type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
@@ -324,9 +324,10 @@ mod tests {
         type PRF = ShakePRFtoF<7>;
         type TH = PoseidonTweakW1L5;
         type MH = PoseidonMessageHashW1;
-        const _CHUNK_SIZE: usize = 1;
+        const CHUNK_SIZE: usize = 1;
+        const _BASE: usize = 2;
         const NUM_CHUNKS_CHECKSUM: usize = 8;
-        type IE = WinternitzEncoding<MH, NUM_CHUNKS_CHECKSUM>;
+        type IE = WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>;
         const LOG_LIFETIME: usize = 5;
         type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
@@ -344,9 +345,9 @@ mod tests {
         type PRF = ShaPRF<24>;
         type TH = ShaTweak192192;
         type MH = ShaMessageHash192x3;
-        const CHUNK_SIZE: usize = MH::CHUNK_SIZE;
+        const BASE: usize = MH::BASE;
         const NUM_CHUNKS: usize = MH::DIMENSION;
-        const MAX_CHUNK_VALUE: usize = (1 << CHUNK_SIZE) - 1;
+        const MAX_CHUNK_VALUE: usize = BASE - 1;
         const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
         type IE = TargetSumEncoding<MH, EXPECTED_SUM>;
         const LOG_LIFETIME: usize = 8;
@@ -362,14 +363,14 @@ mod tests {
     }
 
     #[test]
-    pub fn test_target_sum_winternitz_poseidon() {
+    pub fn test_target_sum_poseidon() {
         // Note: do not use these parameters, they are just for testing
         type PRF = ShakePRFtoF<7>;
         type TH = PoseidonTweakW1L5;
         type MH = PoseidonMessageHashW1;
-        const CHUNK_SIZE: usize = MH::CHUNK_SIZE;
+        const BASE: usize = MH::BASE;
         const NUM_CHUNKS: usize = MH::DIMENSION;
-        const MAX_CHUNK_VALUE: usize = (1 << CHUNK_SIZE) - 1;
+        const MAX_CHUNK_VALUE: usize = BASE - 1;
         const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
         type IE = TargetSumEncoding<MH, EXPECTED_SUM>;
         const LOG_LIFETIME: usize = 5;

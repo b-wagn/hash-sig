@@ -12,10 +12,11 @@ pub trait MessageHash {
     type Parameter: Clone + Sized;
     type Randomness;
 
+    /// number of entries in a hash
     const DIMENSION: usize;
 
-    /// Must be 1, 2, 4, or 8
-    const CHUNK_SIZE: usize;
+    /// each hash entry is between 0 and BASE - 1
+    const BASE: usize;
 
     /// Generates a random domain element.
     fn rand<R: Rng>(rng: &mut R) -> Self::Randomness;
@@ -23,13 +24,13 @@ pub trait MessageHash {
     /// Applies the message hash to a parameter, an epoch,
     /// a randomness, and a message. It outputs a list of chunks.
     /// The list contains DIMENSION many elements, each between
-    /// 0 and 2^CHUNK_SIZE - 1 (inclusive).
+    /// 0 and BASE - 1 (inclusive).
     fn apply(
         parameter: &Self::Parameter,
         epoch: u32,
         randomness: &Self::Randomness,
         message: &[u8; MESSAGE_LENGTH],
-    ) -> Vec<u8>;
+    ) -> Vec<u16>;
 
     /// Function to check internal consistency of any given parameters
     /// For testing only, and expected to panic if something is wrong.
@@ -72,7 +73,7 @@ const fn isolate_chunk_from_byte(byte: u8, chunk_index: usize, chunk_size: usize
 /// many bits. For example, if `bytes` contains 6 elements, and
 /// `chunk_size` is 2, then the result contains 6 * (8/2) = 24 elements.
 ///  It is assumed that `chunk_size` divides 8 and is between 1 and 8.
-pub fn bytes_to_chunks(bytes: &[u8], chunk_size: usize) -> Vec<u8> {
+pub fn bytes_to_chunks(bytes: &[u8], chunk_size: usize) -> Vec<u16> {
     // Ensure chunk size divides 8 and is between 1 and 8
     assert!(chunk_size > 0 && chunk_size <= 8 && 8 % chunk_size == 0);
 
@@ -86,7 +87,7 @@ pub fn bytes_to_chunks(bytes: &[u8], chunk_size: usize) -> Vec<u8> {
         let byte = bytes[byte_index];
         // now isolate the chunk and store it
         let chunk_index_in_byte = chunk_index % chunks_per_byte;
-        let chunk = isolate_chunk_from_byte(byte, chunk_index_in_byte, chunk_size);
+        let chunk = isolate_chunk_from_byte(byte, chunk_index_in_byte, chunk_size) as u16;
         chunks.push(chunk);
     }
     chunks
@@ -133,7 +134,7 @@ mod tests {
         let chunks = bytes_to_chunks(&bytes, 8);
 
         assert_eq!(chunks.len(), 2);
-        assert_eq!(chunks[0], byte_a);
-        assert_eq!(chunks[1], byte_b);
+        assert_eq!(chunks[0], byte_a as u16);
+        assert_eq!(chunks[1], byte_b as u16);
     }
 }
