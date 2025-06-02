@@ -8,7 +8,7 @@ pub type EncodingError = ();
 /// Trait to model incomparable encoding schemes.
 /// These schemes allow to encode a message into a codeword.
 ///
-/// A codeword is vector of a fixed dimension containing
+/// A codeword is a vector of a fixed dimension containing
 /// integer elements between 0 and BASE - 1.
 /// We require BASE to be at most 1 << 16 to ensure that
 /// the entries fit into u16.
