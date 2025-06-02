@@ -619,7 +619,7 @@ mod tests {
             .to_field_elements::<3>();
 
             if let Some((prev_level, prev_pos_in_level)) =
-                map.insert(tweak_encoding.clone(), (level, pos_in_level))
+                map.insert(tweak_encoding, (level, pos_in_level))
             {
                 assert_eq!(
                     (prev_level, prev_pos_in_level),
@@ -645,7 +645,7 @@ mod tests {
             }
             .to_field_elements::<3>();
 
-            if let Some(prev_pos_in_level) = map.insert(tweak_encoding.clone(), pos_in_level) {
+            if let Some(prev_pos_in_level) = map.insert(tweak_encoding, pos_in_level) {
                 assert_eq!(
                     prev_pos_in_level, pos_in_level,
                     "Collision detected for ({},{}) and ({},{}) with output {:?}",
@@ -665,7 +665,7 @@ mod tests {
             }
             .to_field_elements::<3>();
 
-            if let Some(prev_level) = map.insert(tweak_encoding.clone(), level) {
+            if let Some(prev_level) = map.insert(tweak_encoding, level) {
                 assert_eq!(
                     prev_level, level,
                     "Collision detected for ({},{}) and ({},{}) with output {:?}",
@@ -698,7 +698,7 @@ mod tests {
             }
             .to_field_elements::<3>();
 
-            if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
+            if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
                     prev_input, input,
                     "Collision detected for {:?} and {:?} with output {:?}",
@@ -723,7 +723,7 @@ mod tests {
             }
             .to_field_elements::<3>();
 
-            if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
+            if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
                     prev_input, input,
                     "Collision detected for {:?} and {:?} with output {:?}",
@@ -748,7 +748,7 @@ mod tests {
             }
             .to_field_elements::<3>();
 
-            if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
+            if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
                     prev_input, input,
                     "Collision detected for {:?} and {:?} with output {:?}",
@@ -773,7 +773,7 @@ mod tests {
             }
             .to_field_elements::<3>();
 
-            if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
+            if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
                     prev_input, input,
                     "Collision detected for {:?} and {:?} with output {:?}",
