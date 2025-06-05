@@ -131,7 +131,7 @@ mod tests {
         let chain_index = 210;
         let parameter = TestTH::rand_parameter(&mut rng);
         let start = TestTH::rand_domain(&mut rng);
-        let total_steps = u8::MAX; // max if we say that pos_in_chain is u8
+        let total_steps = u8::MAX as usize; // max if we say that pos_in_chain is u8
 
         // walking directly
         let end_direct = chain::<TestTH>(&parameter, epoch, chain_index, 0, total_steps, &start);
