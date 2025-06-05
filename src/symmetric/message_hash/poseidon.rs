@@ -176,7 +176,7 @@ impl<
         );
 
         // how many bits can be represented by one field element
-        let bits_per_fe = f64::ceil(f64::log2(
+        let bits_per_fe = f64::floor(f64::log2(
             BigUint::from(FqConfig::MODULUS)
                 .to_string()
                 .parse()
