@@ -43,7 +43,7 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
         message: &[u8; MESSAGE_LENGTH],
         randomness: &Self::Randomness,
         epoch: u32,
-    ) -> Result<Vec<u16>, super::EncodingError> {
+    ) -> Result<Vec<u8>, super::EncodingError> {
         // apply the message hash first to get chunks
         let chunks = MH::apply(parameter, epoch, randomness, message);
         let sum: u32 = chunks.iter().map(|&x| x as u32).sum();
@@ -57,10 +57,14 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
 
     #[cfg(test)]
     fn internal_consistency_check() {
-        // base must not be too large
+        // base and dimension must not be too large
         assert!(
-            Self::BASE <= 1 << 16,
-            "Target Sum Encoding: Base must be at most 2^16"
+            Self::BASE <= 1 << 8,
+            "Target Sum Encoding: Base must be at most 2^8"
+        );
+        assert!(
+            Self::DIMENSION <= 1 << 8,
+            "Target Sum Encoding: Dimension must be at most 2^8"
         );
 
         // also check internal consistency of message hash

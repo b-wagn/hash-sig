@@ -12,8 +12,8 @@ pub enum ShaTweak {
     },
     ChainTweak {
         epoch: u32,
-        chain_index: u16,
-        pos_in_chain: u16,
+        chain_index: u8,
+        pos_in_chain: u8,
     },
 }
 
@@ -88,7 +88,7 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
         }
     }
 
-    fn chain_tweak(epoch: u32, chain_index: u16, pos_in_chain: u16) -> Self::Tweak {
+    fn chain_tweak(epoch: u32, chain_index: u8, pos_in_chain: u8) -> Self::Tweak {
         ShaTweak::ChainTweak {
             epoch,
             chain_index,

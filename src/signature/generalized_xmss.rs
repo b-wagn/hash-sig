@@ -115,7 +115,7 @@ where
                         chain::<TH>(
                             &parameter,
                             epoch as u32,
-                            chain_index as u16,
+                            chain_index as u8,
                             0,
                             chain_length - 1,
                             &start,
@@ -199,7 +199,7 @@ where
             let hash_in_chain = chain::<TH>(
                 &sk.parameter,
                 epoch,
-                chain_index as u16,
+                chain_index as u8,
                 0,
                 steps as usize,
                 &start,
@@ -242,13 +242,14 @@ where
         for (chain_index, xi) in x.iter().enumerate() {
             // If the signer has already walked x[i] steps, then we need
             // to walk chain_length - 1 - x[i] steps to reach the end of the chain
-            let steps = (chain_length - 1) as u16 - xi;
+            // Note: by our consistency checks, we have chain_length <= 2^8, so chain_length - 1 fits into u8
+            let steps = (chain_length - 1) as u8 - xi;
             let start_pos_in_chain = *xi;
             let start = &sig.hashes[chain_index];
             let end = chain::<TH>(
                 &pk.parameter,
                 epoch,
-                chain_index as u16,
+                chain_index as u8,
                 start_pos_in_chain,
                 steps as usize,
                 start,
@@ -274,6 +275,14 @@ where
         PRF::internal_consistency_check();
         IE::internal_consistency_check();
         TH::internal_consistency_check();
+
+        // assert BASE and DIMENSION are small enough to make sure that we can fit
+        // pos_in_chain and chain_index in u8.
+
+        // TODO: add test for max values
+
+        assert!(IE::BASE <= 1 << 8, "Generalized XMSS: Encoding base too large, must be at most 2^8");
+        assert!(IE::DIMENSION <= 1 << 8, "Generalized XMSS: Encoding dimension too large, must be at most 2^8");
     }
 }
 

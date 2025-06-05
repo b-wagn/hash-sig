@@ -29,7 +29,7 @@ pub trait TweakableHash {
 
     /// Returns a tweak to be used in chains.
     /// Note: this is assumed to be distinct from the outputs of tree_tweak
-    fn chain_tweak(epoch: u32, chain_index: u16, pos_in_chain: u16) -> Self::Tweak;
+    fn chain_tweak(epoch: u32, chain_index: u8, pos_in_chain: u8) -> Self::Tweak;
 
     /// Applies the tweakable hash to parameter, tweak, and message.
     fn apply(
@@ -54,8 +54,8 @@ pub trait TweakableHash {
 pub(crate) fn chain<TH: TweakableHash>(
     parameter: &TH::Parameter,
     epoch: u32,
-    chain_index: u16,
-    start_pos_in_chain: u16,
+    chain_index: u8,
+    start_pos_in_chain: u8,
     steps: usize,
     start: &TH::Domain,
 ) -> TH::Domain {
@@ -64,7 +64,7 @@ pub(crate) fn chain<TH: TweakableHash>(
 
     // otherwise, walk the right amount of steps
     for j in 0..steps {
-        let tweak = TH::chain_tweak(epoch, chain_index, start_pos_in_chain + (j as u16) + 1);
+        let tweak = TH::chain_tweak(epoch, chain_index, start_pos_in_chain + (j as u8) + 1u8);
         current = TH::apply(parameter, &tweak, &[current]);
     }
 
@@ -110,7 +110,43 @@ mod tests {
                 &parameter,
                 epoch,
                 chain_index,
-                steps_a as u16,
+                steps_a as u8,
+                steps_b,
+                &intermediate,
+            );
+
+            // should be the same
+            assert_eq!(end_direct, end_indirect);
+        }
+    }
+
+    #[test]
+    fn test_chain_associative_max_value() {
+        let mut rng = thread_rng();
+
+        // we test that first walking k steps, and then walking the remaining steps
+        // is the same as directly walking all steps.
+
+        let epoch = 12;
+        let chain_index = 210;
+        let parameter = TestTH::rand_parameter(&mut rng);
+        let start = TestTH::rand_domain(&mut rng);
+        let total_steps = 255; // max if we say that pos_in_chain is u8
+
+        // walking directly
+        let end_direct = chain::<TestTH>(&parameter, epoch, chain_index, 0, total_steps, &start);
+
+        for split in 0..=total_steps {
+            let steps_a = split;
+            let steps_b = total_steps - split;
+
+            // walking indirectly
+            let intermediate = chain::<TestTH>(&parameter, epoch, chain_index, 0, steps_a, &start);
+            let end_indirect = chain::<TestTH>(
+                &parameter,
+                epoch,
+                chain_index,
+                steps_a as u8,
                 steps_b,
                 &intermediate,
             );

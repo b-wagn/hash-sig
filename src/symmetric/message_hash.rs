@@ -8,6 +8,8 @@ use crate::MESSAGE_LENGTH;
 /// message hashing. Specifically, it contains one more input,
 /// and is always executed with respect to epochs, i.e., tweaks
 /// are implicitly derived from the epoch.
+///
+/// Note that BASE must be at most 2^8, as we encode chunks as u8.
 pub trait MessageHash {
     type Parameter: Clone + Sized;
     type Randomness;
@@ -30,7 +32,7 @@ pub trait MessageHash {
         epoch: u32,
         randomness: &Self::Randomness,
         message: &[u8; MESSAGE_LENGTH],
-    ) -> Vec<u16>;
+    ) -> Vec<u8>;
 
     /// Function to check internal consistency of any given parameters
     /// For testing only, and expected to panic if something is wrong.
@@ -73,7 +75,7 @@ const fn isolate_chunk_from_byte(byte: u8, chunk_index: usize, chunk_size: usize
 /// many bits. For example, if `bytes` contains 6 elements, and
 /// `chunk_size` is 2, then the result contains 6 * (8/2) = 24 elements.
 ///  It is assumed that `chunk_size` divides 8 and is between 1 and 8.
-pub fn bytes_to_chunks(bytes: &[u8], chunk_size: usize) -> Vec<u16> {
+pub fn bytes_to_chunks(bytes: &[u8], chunk_size: usize) -> Vec<u8> {
     // Ensure chunk size divides 8 and is between 1 and 8
     assert!(chunk_size > 0 && chunk_size <= 8 && 8 % chunk_size == 0);
 
@@ -87,7 +89,7 @@ pub fn bytes_to_chunks(bytes: &[u8], chunk_size: usize) -> Vec<u16> {
         let byte = bytes[byte_index];
         // now isolate the chunk and store it
         let chunk_index_in_byte = chunk_index % chunks_per_byte;
-        let chunk = isolate_chunk_from_byte(byte, chunk_index_in_byte, chunk_size) as u16;
+        let chunk = isolate_chunk_from_byte(byte, chunk_index_in_byte, chunk_size);
         chunks.push(chunk);
     }
     chunks
@@ -134,7 +136,7 @@ mod tests {
         let chunks = bytes_to_chunks(&bytes, 8);
 
         assert_eq!(chunks.len(), 2);
-        assert_eq!(chunks[0], byte_a as u16);
-        assert_eq!(chunks[1], byte_b as u16);
+        assert_eq!(chunks[0], byte_a);
+        assert_eq!(chunks[1], byte_b);
     }
 }

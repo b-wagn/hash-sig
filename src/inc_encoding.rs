@@ -10,8 +10,8 @@ pub type EncodingError = ();
 ///
 /// A codeword is a vector of a fixed dimension containing
 /// integer elements between 0 and BASE - 1.
-/// **WARNING**: We require BASE to be at most 1 << 16 to ensure that
-/// the entries fit into u16.
+/// **WARNING**: We require BASE to be at most 2^8 to ensure that
+/// the entries fit into u8.
 ///
 /// The main feature of these encodings is that no two distinct
 /// codewords are "comparable", i.e., for no two codewords
@@ -44,7 +44,7 @@ pub trait IncomparableEncoding {
         message: &[u8; MESSAGE_LENGTH],
         randomness: &Self::Randomness,
         epoch: u32,
-    ) -> Result<Vec<u16>, EncodingError>;
+    ) -> Result<Vec<u8>, EncodingError>;
 
     /// Function to check internal consistency of any given parameters
     /// For testing only, and expected to panic if something is wrong.

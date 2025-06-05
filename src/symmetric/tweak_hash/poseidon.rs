@@ -32,8 +32,8 @@ pub enum PoseidonTweak {
     },
     ChainTweak {
         epoch: u32,
-        chain_index: u16,
-        pos_in_chain: u16,
+        chain_index: u8,
+        pos_in_chain: u8,
     },
 }
 
@@ -54,8 +54,8 @@ impl PoseidonTweak {
                 chain_index,
                 pos_in_chain,
             } => {
-                ((*epoch as u128) << 40)
-                    | ((*chain_index as u128) << 24)
+                ((*epoch as u128) << 24)
+                    | ((*chain_index as u128) << 16)
                     | ((*pos_in_chain as u128) << 8)
                     | (TWEAK_SEPARATOR_FOR_CHAIN_HASH as u128)
             }
@@ -231,7 +231,7 @@ impl<
         }
     }
 
-    fn chain_tweak(epoch: u32, chain_index: u16, pos_in_chain: u16) -> Self::Tweak {
+    fn chain_tweak(epoch: u32, chain_index: u8, pos_in_chain: u8) -> Self::Tweak {
         PoseidonTweak::ChainTweak {
             epoch,
             chain_index,
@@ -330,7 +330,7 @@ impl<
 
 
         let bits_for_tree_tweak = f64::from(32 + 8_u32);
-        let bits_for_chain_tweak = f64::from(32 + 16 + 16 + 8_u32);
+        let bits_for_chain_tweak = f64::from(32 + 8 + 8 + 8_u32);
         let tweak_fe_bits = bits_per_fe * f64::from(TWEAK_LEN as u32);
         assert!(
             tweak_fe_bits >= bits_for_tree_tweak,
@@ -474,7 +474,6 @@ mod tests {
         let expected = [
             F::from(&tweak_bigint % &p),
             F::from((&tweak_bigint / &p) % &p),
-            F::from((&tweak_bigint / (&p * &p)) % &p),
         ];
 
         // Check actual output
@@ -482,7 +481,7 @@ mod tests {
             level,
             pos_in_level,
         };
-        let computed = tweak.to_field_elements::<3>();
+        let computed = tweak.to_field_elements::<2>();
         assert_eq!(computed, expected);
     }
 
@@ -490,13 +489,13 @@ mod tests {
     fn test_chain_tweak_field_elements() {
         // Tweak
         let epoch = 1u32;
-        let chain_index = 2u16;
-        let pos_in_chain = 3u16;
+        let chain_index = 2u8;
+        let pos_in_chain = 3u8;
         let sep = TWEAK_SEPARATOR_FOR_CHAIN_HASH as u64;
 
-        // Compute tweak_bigint = (epoch << 40) + (chain_index << 24) + (pos_in_chain << 8) + sep
-        let tweak_bigint = (BigUint::from(epoch) << 40)
-            + (BigUint::from(chain_index) << 24)
+        // Compute tweak_bigint = (epoch << 24) + (chain_index << 16) + (pos_in_chain << 8) + sep
+        let tweak_bigint = (BigUint::from(epoch) << 24)
+            + (BigUint::from(chain_index) << 16)
             + (BigUint::from(pos_in_chain) << 8)
             + sep;
 
@@ -507,7 +506,6 @@ mod tests {
         let expected = [
             F::from(&tweak_bigint % &p),
             F::from((&tweak_bigint / &p) % &p),
-            F::from((&tweak_bigint / (&p * &p)) % &p),
         ];
 
         // Check actual output
@@ -516,7 +514,7 @@ mod tests {
             chain_index,
             pos_in_chain,
         };
-        let computed = tweak.to_field_elements::<3>();
+        let computed = tweak.to_field_elements::<2>();
         assert_eq!(computed, expected);
     }
 
@@ -532,26 +530,25 @@ mod tests {
         let expected = [
             F::from(&tweak_bigint % &p),
             F::from((&tweak_bigint / &p) % &p),
-            F::from((&tweak_bigint / (&p * &p)) % &p),
         ];
 
         let tweak = PoseidonTweak::TreeTweak {
             level,
             pos_in_level,
         };
-        let computed = tweak.to_field_elements::<3>();
+        let computed = tweak.to_field_elements::<2>();
         assert_eq!(computed, expected);
     }
 
     #[test]
     fn test_chain_tweak_field_elements_max_values() {
         let epoch = u32::MAX;
-        let chain_index = u16::MAX;
-        let pos_in_chain = u16::MAX;
+        let chain_index = u8::MAX;
+        let pos_in_chain = u8::MAX;
         let sep = TWEAK_SEPARATOR_FOR_CHAIN_HASH as u64;
 
-        let tweak_bigint = (BigUint::from(epoch) << 40)
-            + (BigUint::from(chain_index) << 24)
+        let tweak_bigint = (BigUint::from(epoch) << 24)
+            + (BigUint::from(chain_index) << 16)
             + (BigUint::from(pos_in_chain) << 8)
             + sep;
 
@@ -559,7 +556,6 @@ mod tests {
         let expected = [
             F::from(&tweak_bigint % &p),
             F::from((&tweak_bigint / &p) % &p),
-            F::from((&tweak_bigint / (&p * &p)) % &p),
         ];
 
         let tweak = PoseidonTweak::ChainTweak {
@@ -567,7 +563,7 @@ mod tests {
             chain_index,
             pos_in_chain,
         };
-        let computed = tweak.to_field_elements::<3>();
+        let computed = tweak.to_field_elements::<2>();
         assert_eq!(computed, expected);
     }
 
@@ -631,7 +627,7 @@ mod tests {
                 level,
                 pos_in_level,
             }
-            .to_field_elements::<3>();
+            .to_field_elements::<2>();
 
             if let Some((prev_level, prev_pos_in_level)) =
                 map.insert(tweak_encoding, (level, pos_in_level))
@@ -658,7 +654,7 @@ mod tests {
                 level,
                 pos_in_level,
             }
-            .to_field_elements::<3>();
+            .to_field_elements::<2>();
 
             if let Some(prev_pos_in_level) = map.insert(tweak_encoding, pos_in_level) {
                 assert_eq!(
@@ -678,7 +674,7 @@ mod tests {
                 level,
                 pos_in_level,
             }
-            .to_field_elements::<3>();
+            .to_field_elements::<2>();
 
             if let Some(prev_level) = map.insert(tweak_encoding, level) {
                 assert_eq!(
@@ -711,7 +707,7 @@ mod tests {
                 chain_index,
                 pos_in_chain,
             }
-            .to_field_elements::<3>();
+            .to_field_elements::<2>();
 
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
@@ -736,7 +732,7 @@ mod tests {
                 chain_index,
                 pos_in_chain,
             }
-            .to_field_elements::<3>();
+            .to_field_elements::<2>();
 
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
@@ -761,7 +757,7 @@ mod tests {
                 chain_index,
                 pos_in_chain,
             }
-            .to_field_elements::<3>();
+            .to_field_elements::<2>();
 
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
@@ -786,7 +782,7 @@ mod tests {
                 chain_index,
                 pos_in_chain,
             }
-            .to_field_elements::<3>();
+            .to_field_elements::<2>();
 
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(

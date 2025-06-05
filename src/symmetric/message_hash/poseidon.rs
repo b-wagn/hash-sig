@@ -51,10 +51,10 @@ fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
 /// Function to decode a vector of field elements into
 /// a vector of DIMENSION many chunks. One chunk is
 /// between 0 and BASE - 1 (inclusive).
-/// BASE up to 2^16 (inclusive) is supported
+/// BASE up to 2^8 (inclusive) is supported
 fn decode_to_chunks<const DIMENSION: usize, const BASE: usize, const HASH_LEN_FE: usize>(
     field_elements: &[F; HASH_LEN_FE],
-) -> [u16; DIMENSION] {
+) -> [u8; DIMENSION] {
     // Combine field elements into one big integer
     let p = BigUint::from(FqConfig::MODULUS);
     let mut acc = BigUint::ZERO;
@@ -125,7 +125,7 @@ impl<
         epoch: u32,
         randomness: &Self::Randomness,
         message: &[u8; MESSAGE_LENGTH],
-    ) -> Vec<u16> {
+    ) -> Vec<u8> {
         // We need a Poseidon instance
         let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
 
@@ -165,10 +165,14 @@ impl<
             "The prime field used is too large"
         );
 
-        // Base check
+        // Base and dimension check
         assert!(
-            Self::BASE <= 1 << 16,
-            "Poseidon Message Hash: Base must be at most 2^16"
+            Self::BASE <= 1 << 8,
+            "Poseidon Message Hash: Base must be at most 2^8"
+        );
+        assert!(
+            Self::DIMENSION <= 1 << 8,
+            "Poseidon Message Hash: Dimension must be at most 2^8"
         );
 
         // how many bits can be represented by one field element
@@ -281,44 +285,6 @@ mod tests {
             "rand generated identical elements in all {} trials",
             K
         );
-    }
-
-    #[test]
-    fn test_decode_to_chunks_all_zeros() {
-        // All field elements are zero
-        let field_elements = [F::ZERO; 5];
-
-        // Should decode to all zero chunks
-        let expected = [0u16; 8];
-        let result = decode_to_chunks::<8, 16, 5>(&field_elements);
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn test_decode_to_chunks_simple_value() {
-        // Field modulus
-        let p = BigUint::from(FqConfig::MODULUS);
-
-        // Create field elements
-        let input = [F::from(1u64), F::from(2u64)];
-        let input_uint = BigUint::from(2u64) * &p + BigUint::from(1u64);
-
-        // CHUNK_SIZE = 4 => max value = 2^4 = 16
-        // Split input_uint = 2p + 1 into base-16 digits (little endian)
-        //
-        // Example:
-        //   input_uint = D_0 + 16*D_1 + 16^2*D_2 + ...
-        //   We compute D_i = input_uint % 16, then divide by 16
-
-        let mut acc = input_uint.clone();
-        let mut expected = [0; 4];
-        for i in 0..4 {
-            expected[i] = (&acc % 16u8).try_into().unwrap();
-            acc /= 16u8;
-        }
-
-        let result = decode_to_chunks::<4, 16, 2>(&input);
-        assert_eq!(result, expected);
     }
 
     #[test]
@@ -480,6 +446,44 @@ mod tests {
     }
 
     #[test]
+    fn test_decode_to_chunks_all_zeros() {
+        // All field elements are zero
+        let field_elements = [F::ZERO; 5];
+
+        // Should decode to all zero chunks
+        let expected = [0u8; 8];
+        let result = decode_to_chunks::<8, 16, 5>(&field_elements);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_decode_to_chunks_simple_value() {
+        // Field modulus
+        let p = BigUint::from(FqConfig::MODULUS);
+
+        // Create field elements
+        let input = [F::from(1u64), F::from(2u64)];
+        let input_uint = BigUint::from(2u64) * &p + BigUint::from(1u64);
+
+        // CHUNK_SIZE = 4 => max value = 2^4 = 16
+        // Split input_uint = 2p + 1 into base-16 digits (little endian)
+        //
+        // Example:
+        //   input_uint = D_0 + 16*D_1 + 16^2*D_2 + ...
+        //   We compute D_i = input_uint % 16, then divide by 16
+
+        let mut acc = input_uint.clone();
+        let mut expected = [0; 4];
+        for i in 0..4 {
+            expected[i] = (&acc % 16u8).try_into().unwrap();
+            acc /= 16u8;
+        }
+
+        let result = decode_to_chunks::<4, 16, 2>(&input);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
     fn test_decode_to_chunks_max_value() {
         // Field modulus
         let p = BigUint::from(FqConfig::MODULUS);
@@ -502,7 +506,7 @@ mod tests {
 
         // CHUNK_SIZE = 8 / BASE = 256
         let mut acc = input_uint.clone();
-        let mut expected = [0u16; 8];
+        let mut expected = [0u8; 8];
         for i in 0..8 {
             expected[i] = (&acc % 256u32).try_into().unwrap();
             acc /= 256u32;
