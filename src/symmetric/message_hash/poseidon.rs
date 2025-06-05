@@ -152,6 +152,7 @@ impl<
         // Check that Poseidon of width 24 is enough
         // Note: This block should be changed if we decide to support other Poseidon
         // instances. Currently we use state of width 24 and pad with 0s.
+
         assert!(
             PARAMETER_LEN + TWEAK_LEN_FE + RAND_LEN_FE + MSG_LEN_FE <= 24,
             "Poseidon of width 24 is not enough"
@@ -170,37 +171,32 @@ impl<
             "Poseidon Message Hash: Base must be at most 2^16"
         );
 
-        // message check
-        let message_fe_bits = f64::log2(
+        // how many bits can be represented by one field element
+        let bits_per_fe = f64::ceil(f64::log2(
             BigUint::from(FqConfig::MODULUS)
                 .to_string()
                 .parse()
                 .unwrap(),
-        ) * f64::from(MSG_LEN_FE as u32);
+        ));
+
+        // Check that we have enough bits to encode message
+        let message_fe_bits = bits_per_fe * f64::from(MSG_LEN_FE as u32);
         assert!(
             message_fe_bits >= f64::from((8_u32) * (MESSAGE_LENGTH as u32)),
             "Poseidon Message Hash: Parameter mismatch: not enough field elements to encode the message"
         );
 
-        // tweak check
-        let tweak_fe_bits = f64::log2(
-            BigUint::from(FqConfig::MODULUS)
-                .to_string()
-                .parse()
-                .unwrap(),
-        ) * f64::from(TWEAK_LEN_FE as u32);
+        // Check that we have enough bits to encode tweak
+        // Epoch is a u32, and we have one domain separator byte
+        let tweak_fe_bits = bits_per_fe * f64::from(TWEAK_LEN_FE as u32);
         assert!(
             tweak_fe_bits >= f64::from(32 + 8_u32),
             "Poseidon Message Hash: Parameter mismatch: not enough field elements to encode the epoch tweak"
         );
 
-        // decoding check
-        let hash_bits = f64::log2(
-            BigUint::from(FqConfig::MODULUS)
-                .to_string()
-                .parse()
-                .unwrap(),
-        ) * f64::from(HASH_LEN_FE as u32);
+        // Check that decoding from field elements to chunks can be done
+        // injectively, i.e., we have enough chunks
+        let hash_bits = bits_per_fe * f64::from(HASH_LEN_FE as u32);
         let chunk_size = f64::ceil(f64::log2(Self::BASE as f64)) as usize;
         assert!(
             hash_bits <= f64::from((DIMENSION * chunk_size) as u32),

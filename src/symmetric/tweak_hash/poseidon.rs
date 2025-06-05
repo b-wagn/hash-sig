@@ -307,7 +307,6 @@ impl<
             CAPACITY < 24,
             "Poseidon Tweak Chain Hash: Capacity must be less than 24"
         );
-
         assert!(
             PARAMETER_LEN + TWEAK_LEN + HASH_LEN <= 16,
             "Poseidon Tweak Chain Hash: Input lengths too large for Poseidon instance"
@@ -316,16 +315,32 @@ impl<
             PARAMETER_LEN + TWEAK_LEN + 2 * HASH_LEN <= 24,
             "Poseidon Tweak Tree Hash: Input lengths too large for Poseidon instance"
         );
-        let state_bits = f64::log2(
+
+        let bits_per_fe = f64::ceil(f64::log2(
             BigUint::from(FqConfig::MODULUS)
                 .to_string()
                 .parse()
                 .unwrap(),
-        ) * f64::from(24_u32);
+        ));
+        let state_bits = bits_per_fe * f64::from(24_u32);
         assert!(
             state_bits >= f64::from((DOMAIN_PARAMETERS_LENGTH * 32) as u32),
             "Poseidon Tweak Leaf Hash: not enough field elements to hash the domain separator"
         );
+
+
+        let bits_for_tree_tweak = f64::from(32 + 8_u32);
+        let bits_for_chain_tweak = f64::from(32 + 16 + 16 + 8_u32);
+        let tweak_fe_bits = bits_per_fe * f64::from(TWEAK_LEN as u32);
+        assert!(
+            tweak_fe_bits >= bits_for_tree_tweak,
+            "Poseidon Tweak Hash: not enough field elements to encode the tree tweak"
+        );
+        assert!(
+            tweak_fe_bits >= bits_for_chain_tweak,
+            "Poseidon Tweak Hash: not enough field elements to encode the chain tweak"
+        );
+
     }
 }
 
