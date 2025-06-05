@@ -328,7 +328,6 @@ impl<
             "Poseidon Tweak Leaf Hash: not enough field elements to hash the domain separator"
         );
 
-
         let bits_for_tree_tweak = f64::from(32 + 8_u32);
         let bits_for_chain_tweak = f64::from(32 + 8 + 8 + 8_u32);
         let tweak_fe_bits = bits_per_fe * f64::from(TWEAK_LEN as u32);
@@ -340,7 +339,6 @@ impl<
             tweak_fe_bits >= bits_for_chain_tweak,
             "Poseidon Tweak Hash: not enough field elements to encode the chain tweak"
         );
-
     }
 }
 

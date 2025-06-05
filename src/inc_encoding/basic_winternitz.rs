@@ -99,7 +99,6 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
             "Winternitz Encoding: Base and chunk size not consistent with message hash"
         );
 
-
         // also check internal consistency of message hash
         MH::internal_consistency_check();
     }

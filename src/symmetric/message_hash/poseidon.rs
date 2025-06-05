@@ -78,7 +78,7 @@ fn decode_to_chunks<const DIMENSION: usize, const BASE: usize, const HASH_LEN_FE
 /// HASH_LEN_FE specifies how many field elements the
 /// hash output needs to be before it is decoded to chunks.
 ///
-/// BASE must be at most 2^16
+/// BASE and DIMENSION must be at most 2^8
 pub struct PoseidonMessageHash<
     const PARAMETER_LEN: usize,
     const RAND_LEN_FE: usize,

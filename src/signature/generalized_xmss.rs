@@ -279,10 +279,14 @@ where
         // assert BASE and DIMENSION are small enough to make sure that we can fit
         // pos_in_chain and chain_index in u8.
 
-        // TODO: add test for max values
-
-        assert!(IE::BASE <= 1 << 8, "Generalized XMSS: Encoding base too large, must be at most 2^8");
-        assert!(IE::DIMENSION <= 1 << 8, "Generalized XMSS: Encoding dimension too large, must be at most 2^8");
+        assert!(
+            IE::BASE <= 1 << 8,
+            "Generalized XMSS: Encoding base too large, must be at most 2^8"
+        );
+        assert!(
+            IE::DIMENSION <= 1 << 8,
+            "Generalized XMSS: Encoding dimension too large, must be at most 2^8"
+        );
     }
 }
 
@@ -298,7 +302,9 @@ mod tests {
         signature::test_templates::_test_signature_scheme_correctness,
         symmetric::{
             message_hash::{
-                poseidon::PoseidonMessageHashW1, sha::ShaMessageHash192x3, MessageHash,
+                poseidon::PoseidonMessageHashW1,
+                sha::{ShaMessageHash, ShaMessageHash192x3},
+                MessageHash,
             },
             prf::{sha::ShaPRF, shake_to_field::ShakePRFtoF},
             tweak_hash::{poseidon::PoseidonTweakW1L5, sha::ShaTweak192192},
@@ -327,6 +333,7 @@ mod tests {
         _test_signature_scheme_correctness::<SIG>(0);
         _test_signature_scheme_correctness::<SIG>(11);
     }
+
     #[test]
     pub fn test_winternitz_poseidon() {
         // Note: do not use these parameters, they are just for testing
@@ -391,5 +398,43 @@ mod tests {
         _test_signature_scheme_correctness::<SIG>(19);
         _test_signature_scheme_correctness::<SIG>(0);
         _test_signature_scheme_correctness::<SIG>(11);
+    }
+
+    #[test]
+    pub fn test_large_base_sha() {
+        // Note: do not use these parameters, they are just for testing
+        type PRF = ShaPRF<24>;
+        type TH = ShaTweak192192;
+
+        // use chunk size 8
+        type MH = ShaMessageHash<24, 8, 32, 8>;
+        const TARGET_SUM: usize = 1 << 12;
+        type IE = TargetSumEncoding<MH, TARGET_SUM>;
+        const LOG_LIFETIME: usize = 9;
+        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+
+        SIG::internal_consistency_check();
+
+        _test_signature_scheme_correctness::<SIG>(0);
+        _test_signature_scheme_correctness::<SIG>(11);
+    }
+
+    #[test]
+    pub fn test_large_dimension_sha() {
+        // Note: do not use these parameters, they are just for testing
+        type PRF = ShaPRF<24>;
+        type TH = ShaTweak192192;
+
+        // use 256 chunks
+        type MH = ShaMessageHash<24, 8, 256, 1>;
+        const TARGET_SUM: usize = 128;
+        type IE = TargetSumEncoding<MH, TARGET_SUM>;
+        const LOG_LIFETIME: usize = 9;
+        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+
+        SIG::internal_consistency_check();
+
+        _test_signature_scheme_correctness::<SIG>(2);
+        _test_signature_scheme_correctness::<SIG>(19);
     }
 }

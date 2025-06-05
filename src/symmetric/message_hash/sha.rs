@@ -84,8 +84,8 @@ impl<
             "SHA Message Hash: Randomness Length must be non-zero"
         );
         assert!(
-            NUM_CHUNKS * CHUNK_SIZE < 256,
-            "SHA Message Hash: Hash Length (= NUM_CHUNKS * CHUNK_SIZE) must be less than 256 bit"
+            NUM_CHUNKS * CHUNK_SIZE <= 256,
+            "SHA Message Hash: Hash Length (= NUM_CHUNKS * CHUNK_SIZE) must be at most 256 bit"
         );
         assert!(
             Self::BASE <= 1 << 8,
