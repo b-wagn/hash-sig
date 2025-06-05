@@ -117,11 +117,9 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
         for j in max(0, d_curr as isize - (w as isize - 1) * (v - i) as isize) as usize
             ..=min(w - 1, d_curr)
         {
-            let count = all_layers[v - i][d_curr - j]
-                .to_usize()
-                .expect("Conversion failed in map_to_vertex");
-            if x_curr >= BigUint::from(count) {
-                x_curr -= BigUint::from(count);
+            let count = all_layers[v - i][d_curr - j].clone();
+            if x_curr >= count {
+                x_curr -= count;
             } else {
                 ji = j;
                 break;
@@ -150,6 +148,24 @@ pub fn hypercube_part_size(v: usize, d: usize) -> BigUint {
     sum
 }
 
+/// Assuming the caller has called precompute_global(v_max, w) before and 1 <= v <= v_max, this function
+/// finds maximal d such that the total size L_<d of layers 0 to d-1 (inclusive) in hypercube [0, w-1]^v
+/// is not bigger than x
+///
+/// Returns d and x-L_<d
+///
+/// Caller needs to make sure that x < w^v
+pub fn hypercube_find_layer(x: BigUint, v: usize) -> (usize, BigUint){
+    let all_layers = ALL_LAYER_SIZES_ARRAY.lock().unwrap();
+    let mut d = 0;
+    let mut val = x;
+    while val >= all_layers[v][d]{    //this can be replaced with binary search for efficiency
+        val -= &all_layers[v][d];
+        d +=1 ;
+    }
+    return (d,val);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -170,10 +186,8 @@ fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
         let ji = w - a[i] as usize;
         d_curr += ji;
         for j in max(0, d_curr as isize - (w as isize - 1) * (v - i - 1) as isize) as usize..ji {
-            let count = all_layers[v - i - 1][d_curr - j]
-                .to_usize()
-                .expect("Conversion failed in map_to_integer");
-            x_curr += BigUint::from(count);
+            let count = all_layers[v - i - 1][d_curr - j].clone();
+            x_curr += count;
         }
     }
     assert_eq!(d_curr, d);
@@ -195,6 +209,20 @@ fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
             assert_eq!(x, y);
             assert_eq!(a, b);
         }
+    }
+    #[test]
+    fn test_big_map(){
+        let w=12;
+        let v = 40;
+        let d = 174;
+        precompute_global(v, w);
+        let dec_string = b"21790506781852242898091207809690042074412";
+        let x = BigUint::parse_bytes(dec_string, 10).expect("Invalid input");
+        let a = map_to_vertex(w, v, d, x.clone());
+        let y = map_to_integer(w, v, d, &a);
+        let b = map_to_vertex(w, v, d, y.clone());
+        assert_eq!(x, y);
+        assert_eq!(a, b);
     }
 
     #[test]

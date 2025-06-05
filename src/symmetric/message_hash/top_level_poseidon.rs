@@ -11,6 +11,7 @@ use zkhash::poseidon2::poseidon2_instance_babybear::POSEIDON2_BABYBEAR_24_PARAMS
 use super::MessageHash;
 use crate::hypercube::hypercube_part_size;
 use crate::hypercube::map_to_vertex;
+use crate::hypercube::hypercube_find_layer;
 use crate::symmetric::message_hash::poseidon::encode_epoch;
 use crate::symmetric::message_hash::poseidon::encode_message;
 use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
@@ -45,8 +46,11 @@ fn map_into_hypercube_part<
     let dom_size = hypercube_part_size(DIMENSION, FINAL_LAYER);
     acc = &acc % dom_size;
 
+    // Figure out in which layer we are
+    let (layer, offset) =hypercube_find_layer(acc,DIMENSION);
+
     // now map this number to a vertex in the output domain
-    map_to_vertex(BASE, DIMENSION, FINAL_LAYER, acc)
+    map_to_vertex(BASE, DIMENSION, layer, offset)
 }
 
 /// A message hash implemented using Poseidon2, mapping into the top layers.
