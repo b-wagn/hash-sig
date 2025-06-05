@@ -124,12 +124,12 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
             }
         }
         assert!(ji < w);
-        let ai = (w - ji) as u8;
+        let ai = (w - ji-1) as u8;
         out.push(ai);
-        d_curr -= w - ai as usize;
+        d_curr -= w - 1- ai  as usize;
     }
     assert!((&x_curr + BigUint::from(d_curr)) < BigUint::from(w));
-    out.push((w as u8) - x_curr.to_usize().expect("Conversion failed") as u8 - d_curr as u8);
+    out.push((w as u8) - 1- x_curr.to_usize().expect("Conversion failed") as u8 - d_curr as u8);
     out
 }
 
@@ -165,34 +165,35 @@ pub fn hypercube_find_layer(x: BigUint, v: usize) -> (usize, BigUint) {
     return (d, val);
 }
 
+ /// Map a vertex `a` in layer `d` to its index x in [0, layer_size(v, d)).
+///
+/// Caller must make sure that precompute_global has been called before.
+pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
+    assert_eq!(a.len(), v);
+    let mut x_curr = BigUint::from(0u32);
+    let mut d_curr = w - 1 -a[v - 1] as usize;
+
+        let all_layers = ALL_LAYER_SIZES.lock().unwrap();
+
+    for i in (0..v - 1).rev() {
+        let ji = w - 1 - a[i] as usize;
+        d_curr += ji;
+        for j in max(0, d_curr as isize - (w as isize - 1) * (v - i - 1) as isize) as usize..ji {
+            let count = all_layers[v - i - 1][d_curr - j].clone();
+            x_curr += count;
+        }
+    }
+    assert_eq!(d_curr, d);
+    x_curr
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use num_bigint::BigUint;
     use num_traits::ToPrimitive;
 
-    /// Map a vertex `a` in layer `d` to its index x in [0, layer_size(v, d)).
-    ///
-    /// Caller must make sure that precompute_global has been called before.
-    fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
-        assert_eq!(a.len(), v);
-        let mut x_curr = BigUint::from(0u32);
-        let mut d_curr = w - a[v - 1] as usize;
 
-        let all_layers = ALL_LAYER_SIZES.lock().unwrap();
-
-        for i in (0..v - 1).rev() {
-            let ji = w - a[i] as usize;
-            d_curr += ji;
-            for j in max(0, d_curr as isize - (w as isize - 1) * (v - i - 1) as isize) as usize..ji
-            {
-                let count = all_layers[v - i - 1][d_curr - j].clone();
-                x_curr += count;
-            }
-        }
-        assert_eq!(d_curr, d);
-        x_curr
-    }
 
     #[test]
     fn test_maps() {
@@ -207,12 +208,15 @@ mod tests {
         {
             let x = BigUint::from(x_usize);
             let a = map_to_vertex(w, v, d, x.clone());
+            let layer: usize = a.iter().map(|&x| x as usize).sum();
+            assert_eq!((w-1)*v-layer,d);
             let y = map_to_integer(w, v, d, &a);
             let b = map_to_vertex(w, v, d, y.clone());
             assert_eq!(x, y);
             assert_eq!(a, b);
         }
     }
+
     #[test]
     fn test_big_map() {
         let w = 12;
