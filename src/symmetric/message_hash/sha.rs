@@ -85,7 +85,7 @@ impl<
         );
         assert!(
             NUM_CHUNKS * CHUNK_SIZE <= 256,
-            "SHA Message Hash: Hash Length (= NUM_CHUNKS * CHUNK_SIZE) must be at most 256 bit"
+            "SHA Message Hash: Hash Length (= NUM_CHUNKS * CHUNK_SIZE) must be at most 256 bits"
         );
         assert!(
             Self::BASE <= 1 << 8,
