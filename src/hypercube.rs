@@ -1,16 +1,16 @@
-use once_cell::sync::Lazy;
-use std::sync::Mutex;
-use num_traits::ToPrimitive;
 use num_bigint::BigInt;
-use num_traits::Zero;
 use num_bigint::BigUint;
+use num_traits::ToPrimitive;
+use num_traits::Zero;
+use once_cell::sync::Lazy;
 use std::cmp::{max, min};
+use std::sync::Mutex;
 
 // Global caches for factorials, binomial coefficients, and layer sizes
 static FACTORIALS: Lazy<Mutex<Vec<BigUint>>> = Lazy::new(|| Mutex::new(vec![]));
 static BINOMS: Lazy<Mutex<Vec<Vec<BigUint>>>> = Lazy::new(|| Mutex::new(vec![]));
 static LAYER_SIZES: Lazy<Mutex<Vec<BigUint>>> = Lazy::new(|| Mutex::new(vec![]));
-static ALL_LAYER_SIZES_ARRAY: Lazy<Mutex<Vec<Vec<BigUint>>>> = Lazy::new(|| Mutex::new(vec![]));
+static ALL_LAYER_SIZES: Lazy<Mutex<Vec<Vec<BigUint>>>> = Lazy::new(|| Mutex::new(vec![]));
 
 /// Outputs the binomial coefficient binom(n, k) (n choose k)
 ///
@@ -25,13 +25,12 @@ fn binom(n: usize, k: usize) -> BigUint {
     }
     if binoms[n][k] == BigUint::from(0u32) {
         drop(binoms); // unlock before recomputing
-        // recompute binom if needed, or panic if no factorials
+                      // recompute binom if needed, or panic if no factorials
         panic!("binom not precomputed for ({}, {})", n, k);
     } else {
         binoms[n][k].clone()
     }
 }
-
 
 /// Compute the number of integer vectors of dimension `n`,
 /// with entries in [0, m], that sum to `k`.
@@ -49,9 +48,9 @@ fn nb(k: usize, m: usize, n: usize) -> BigUint {
             sum -= part;
         }
     }
-    sum.to_biguint().expect("nb result negative — check parameters")
+    sum.to_biguint()
+        .expect("nb result negative — check parameters")
 }
-
 
 /// Precompute factorials, binomial coefficients, and layer sizes for a given (v, w).
 /// The hypercube is [0, w-1]^v.
@@ -87,7 +86,6 @@ fn precompute_local(v: usize, w: usize) {
     *LAYER_SIZES.lock().unwrap() = layer_sizes;
 }
 
-
 /// Precompute all layer sizes for hypercubes [0, w-1]^v for v in 1..=v_max.
 pub fn precompute_global(v_max: usize, w: usize) {
     let mut all_layers = vec![vec![]];
@@ -95,7 +93,7 @@ pub fn precompute_global(v_max: usize, w: usize) {
         precompute_local(v, w);
         all_layers.push(LAYER_SIZES.lock().unwrap().clone());
     }
-    *ALL_LAYER_SIZES_ARRAY.lock().unwrap() = all_layers;
+    *ALL_LAYER_SIZES.lock().unwrap() = all_layers;
 }
 
 /// Map an integer x in [0, layer_size(v, d)) to a vertex in layer d
@@ -109,7 +107,7 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
     let mut out = Vec::with_capacity(v);
     let mut d_curr = d;
 
-    let all_layers = ALL_LAYER_SIZES_ARRAY.lock().unwrap();
+    let all_layers = ALL_LAYER_SIZES.lock().unwrap();
     assert!(x_curr < all_layers[v][d]);
 
     for i in 1..v {
@@ -140,7 +138,7 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
 ///
 /// Caller needs to make sure that d is a valid layer: 0 <= d <= v * (w-1)
 pub fn hypercube_part_size(v: usize, d: usize) -> BigUint {
-    let all_layers = ALL_LAYER_SIZES_ARRAY.lock().unwrap();
+    let all_layers = ALL_LAYER_SIZES.lock().unwrap();
     let mut sum = BigUint::zero();
     for l in 0..=d {
         sum += &all_layers[v][l];
@@ -155,15 +153,16 @@ pub fn hypercube_part_size(v: usize, d: usize) -> BigUint {
 /// Returns d and x-L_<d
 ///
 /// Caller needs to make sure that x < w^v
-pub fn hypercube_find_layer(x: BigUint, v: usize) -> (usize, BigUint){
-    let all_layers = ALL_LAYER_SIZES_ARRAY.lock().unwrap();
+pub fn hypercube_find_layer(x: BigUint, v: usize) -> (usize, BigUint) {
+    let all_layers = ALL_LAYER_SIZES.lock().unwrap();
     let mut d = 0;
     let mut val = x;
-    while val >= all_layers[v][d]{    //this can be replaced with binary search for efficiency
+    while val >= all_layers[v][d] {
+        // Note: this can be replaced with binary search for efficiency
         val -= &all_layers[v][d];
-        d +=1 ;
+        d += 1;
     }
-    return (d,val);
+    return (d, val);
 }
 
 #[cfg(test)]
@@ -173,26 +172,27 @@ mod tests {
     use num_traits::ToPrimitive;
 
     /// Map a vertex `a` in layer `d` to its index x in [0, layer_size(v, d)).
-///
-/// Caller must make sure that precompute_global has been called before.
-fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
-    assert_eq!(a.len(), v);
-    let mut x_curr = BigUint::from(0u32);
-    let mut d_curr = w - a[v - 1] as usize;
+    ///
+    /// Caller must make sure that precompute_global has been called before.
+    fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
+        assert_eq!(a.len(), v);
+        let mut x_curr = BigUint::from(0u32);
+        let mut d_curr = w - a[v - 1] as usize;
 
-    let all_layers = ALL_LAYER_SIZES_ARRAY.lock().unwrap();
+        let all_layers = ALL_LAYER_SIZES.lock().unwrap();
 
-    for i in (0..v - 1).rev() {
-        let ji = w - a[i] as usize;
-        d_curr += ji;
-        for j in max(0, d_curr as isize - (w as isize - 1) * (v - i - 1) as isize) as usize..ji {
-            let count = all_layers[v - i - 1][d_curr - j].clone();
-            x_curr += count;
+        for i in (0..v - 1).rev() {
+            let ji = w - a[i] as usize;
+            d_curr += ji;
+            for j in max(0, d_curr as isize - (w as isize - 1) * (v - i - 1) as isize) as usize..ji
+            {
+                let count = all_layers[v - i - 1][d_curr - j].clone();
+                x_curr += count;
+            }
         }
+        assert_eq!(d_curr, d);
+        x_curr
     }
-    assert_eq!(d_curr, d);
-    x_curr
-}
 
     #[test]
     fn test_maps() {
@@ -201,7 +201,10 @@ fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
         let d = 20;
         precompute_global(v, w);
         let layers = LAYER_SIZES.lock().unwrap();
-        for x_usize in 0..layers[d].to_usize().expect("Conversion failed in test_maps") {
+        for x_usize in 0..layers[d]
+            .to_usize()
+            .expect("Conversion failed in test_maps")
+        {
             let x = BigUint::from(x_usize);
             let a = map_to_vertex(w, v, d, x.clone());
             let y = map_to_integer(w, v, d, &a);
@@ -211,8 +214,8 @@ fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
         }
     }
     #[test]
-    fn test_big_map(){
-        let w=12;
+    fn test_big_map() {
+        let w = 12;
         let v = 40;
         let d = 174;
         precompute_global(v, w);

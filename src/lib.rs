@@ -5,7 +5,7 @@ pub const TWEAK_SEPARATOR_FOR_MESSAGE_HASH: u8 = 0x02;
 pub const TWEAK_SEPARATOR_FOR_TREE_HASH: u8 = 0x01;
 pub const TWEAK_SEPARATOR_FOR_CHAIN_HASH: u8 = 0x00;
 
+pub mod hypercube;
 pub mod inc_encoding;
 pub mod signature;
 pub mod symmetric;
-pub mod hypercube;

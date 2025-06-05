@@ -15,7 +15,9 @@ use crate::TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
 type F = FpBabyBear;
 
 /// Function to encode a message as an array of field elements
-pub(crate) fn encode_message<const MSG_LEN_FE: usize>(message: &[u8; MESSAGE_LENGTH]) -> [F; MSG_LEN_FE] {
+pub(crate) fn encode_message<const MSG_LEN_FE: usize>(
+    message: &[u8; MESSAGE_LENGTH],
+) -> [F; MSG_LEN_FE] {
     // Interpret message as a little-endian integer
     let mut acc = BigUint::from_bytes_le(message);
 

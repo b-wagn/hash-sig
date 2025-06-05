@@ -7,8 +7,8 @@ use zkhash::fields::babybear::FqConfig;
 use zkhash::poseidon2::poseidon2::Poseidon2;
 use zkhash::poseidon2::poseidon2_instance_babybear::POSEIDON2_BABYBEAR_24_PARAMS;
 
-
 use super::MessageHash;
+use crate::hypercube::hypercube_find_layer;
 use crate::hypercube::hypercube_part_size;
 use crate::hypercube::map_to_vertex;
 use crate::hypercube::hypercube_find_layer;
@@ -18,7 +18,6 @@ use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
 use crate::MESSAGE_LENGTH;
 
 type F = FpBabyBear;
-
 
 // should have a function prepare: it should call precompute_global for hypercube utils, and it should
 // precompute the domain size.
@@ -47,7 +46,7 @@ fn map_into_hypercube_part<
     acc = &acc % dom_size;
 
     // Figure out in which layer we are
-    let (layer, offset) =hypercube_find_layer(acc,DIMENSION);
+    let (layer, offset) = hypercube_find_layer(acc, DIMENSION);
 
     // now map this number to a vertex in the output domain
     map_to_vertex(BASE, DIMENSION, layer, offset)
