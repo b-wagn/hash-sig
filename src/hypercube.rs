@@ -5,6 +5,8 @@ use num_traits::Zero;
 use once_cell::sync::Lazy;
 use std::cmp::{max, min};
 use std::sync::Mutex;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 // Global caches for factorials, binomial coefficients, and layer sizes
 static FACTORIALS: Lazy<Mutex<Vec<BigUint>>> = Lazy::new(|| Mutex::new(vec![]));
@@ -84,6 +86,43 @@ fn precompute_local(v: usize, w: usize) {
         layer_sizes[i] = nb(i, w - 1, v);
     }
     *LAYER_SIZES.lock().unwrap() = layer_sizes;
+}
+
+/// load or compute layer sizes up to some v_max=100
+pub fn load_layer_sizes(w: usize){
+    let v_max =100;
+    let mut all_layers = vec![vec![];v_max+1];
+    for v in 1..=v_max{
+        let max_distance = (w-1)*v;
+        all_layers[v]= vec![BigUint::from(0 as u16);max_distance+1]
+    }
+    let filename = format!("precompute/layer_sizes_w_{}_v_upto_{}.txt",w,v_max);
+    let res = File::open(filename);
+    match res{
+        Ok(_)=>{
+            let reader = BufReader::new(res.unwrap());
+            for line in reader.lines() {
+                let line = line.expect("correct line");
+                let parts: Vec<&str> = line.split(',').collect();
+                let v_value = usize::from_str_radix(parts[3].trim(),10).unwrap();
+                //parts[3]                    .trim()                    .parse::<usize>()                    .unwrap();
+                let max_distance = (w-1)*v_value;
+                let d_value = usize::from_str_radix(parts[5].trim(),10).unwrap();
+                if d_value> max_distance{
+                    continue;
+                }
+                let l_value = BigUint::parse_bytes(parts[7].trim().as_bytes(), 10).unwrap();
+                all_layers[v_value][d_value] = l_value;
+            }
+        }
+        Err(_)=>{
+            for v in 1..=v_max {
+                precompute_local(v, w);
+                all_layers[v]=LAYER_SIZES.lock().unwrap().clone();
+            }
+        }
+    }
+    *ALL_LAYER_SIZES.lock().unwrap() = all_layers;
 }
 
 /// Precompute all layer sizes for hypercubes [0, w-1]^v for v in 1..=v_max.
@@ -200,11 +239,14 @@ mod tests {
         let w = 4;
         let v = 8;
         let d = 20;
-        precompute_global(v, w);
-        let layers = LAYER_SIZES.lock().unwrap();
-        for x_usize in 0..layers[d]
+        load_layer_sizes(w);
+        let max_x = ALL_LAYER_SIZES
+            .lock()
+            .unwrap()[v][d]
+            .clone()
             .to_usize()
-            .expect("Conversion failed in test_maps")
+            .expect("Conversion failed in test_maps");
+        for x_usize in 0..max_x
         {
             let x = BigUint::from(x_usize);
             let a = map_to_vertex(w, v, d, x.clone());
@@ -222,7 +264,7 @@ mod tests {
         let w = 12;
         let v = 40;
         let d = 174;
-        precompute_global(v, w);
+        load_layer_sizes(w);
         let dec_string = b"21790506781852242898091207809690042074412";
         let x = BigUint::parse_bytes(dec_string, 10).expect("Invalid input");
         let a = map_to_vertex(w, v, d, x.clone());
