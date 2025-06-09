@@ -2,13 +2,15 @@ use criterion::{black_box, Criterion, SamplingMode};
 use rand::{thread_rng, Rng};
 
 use hashsig::{
-    hypercube::precompute_global, signature::{
+    hypercube::precompute_global,
+    signature::{
         generalized_xmss::instantiations_poseidon_top_level::{
             lifetime_2_to_the_18::SIGTopLevelTargetSumLifetime18Dim40Base12,
             lifetime_2_to_the_26::SIGTopLevelTargetSumLifetime26Dim64Base8,
         },
         SignatureScheme,
-    }, MESSAGE_LENGTH
+    },
+    MESSAGE_LENGTH,
 };
 
 /// A template for benchmarking signature schemes (key gen, signing, verification)

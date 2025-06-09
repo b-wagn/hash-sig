@@ -5,9 +5,9 @@ use num_traits::ToPrimitive;
 use num_traits::Zero;
 use once_cell::sync::Lazy;
 use std::cmp::{max, min};
-use std::sync::Mutex;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::sync::Mutex;
 
 // Global caches for binomial coefficients, and layer sizes
 static BINOMS: Lazy<Mutex<Vec<Vec<BigUint>>>> = Lazy::new(|| Mutex::new(vec![]));
@@ -82,36 +82,36 @@ fn precompute_local(v: usize, w: usize) {
 }
 
 /// load or compute layer sizes up to some v_max=100
-pub fn load_layer_sizes(w: usize){
-    let v_max =100;
-    let mut all_layers = vec![vec![];v_max+1];
-    for v in 1..=v_max{
-        let max_distance = (w-1)*v;
-        all_layers[v]= vec![BigUint::from(0 as u16);max_distance+1]
+pub fn load_layer_sizes(w: usize) {
+    let v_max = 100;
+    let mut all_layers = vec![vec![]; v_max + 1];
+    for v in 1..=v_max {
+        let max_distance = (w - 1) * v;
+        all_layers[v] = vec![BigUint::from(0 as u16); max_distance + 1]
     }
-    let filename = format!("precompute/layer_sizes_w_{}_v_upto_{}.txt",w,v_max);
+    let filename = format!("precompute/layer_sizes_w_{}_v_upto_{}.txt", w, v_max);
     let res = File::open(filename);
-    match res{
-        Ok(_)=>{
+    match res {
+        Ok(_) => {
             let reader = BufReader::new(res.unwrap());
             for line in reader.lines() {
                 let line = line.expect("correct line");
                 let parts: Vec<&str> = line.split(',').collect();
-                let v_value = usize::from_str_radix(parts[3].trim(),10).unwrap();
+                let v_value = usize::from_str_radix(parts[3].trim(), 10).unwrap();
                 //parts[3]                    .trim()                    .parse::<usize>()                    .unwrap();
-                let max_distance = (w-1)*v_value;
-                let d_value = usize::from_str_radix(parts[5].trim(),10).unwrap();
-                if d_value> max_distance{
+                let max_distance = (w - 1) * v_value;
+                let d_value = usize::from_str_radix(parts[5].trim(), 10).unwrap();
+                if d_value > max_distance {
                     continue;
                 }
                 let l_value = BigUint::parse_bytes(parts[7].trim().as_bytes(), 10).unwrap();
                 all_layers[v_value][d_value] = l_value;
             }
         }
-        Err(_)=>{
+        Err(_) => {
             for v in 1..=v_max {
                 precompute_local(v, w);
-                all_layers[v]=LAYER_SIZES.lock().unwrap().clone();
+                all_layers[v] = LAYER_SIZES.lock().unwrap().clone();
             }
         }
     }
@@ -156,12 +156,12 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
             }
         }
         assert!(ji < w);
-        let ai = (w - ji-1) as u8;
+        let ai = (w - ji - 1) as u8;
         out.push(ai);
-        d_curr -= w - 1- ai  as usize;
+        d_curr -= w - 1 - ai as usize;
     }
     assert!((&x_curr + BigUint::from(d_curr)) < BigUint::from(w));
-    out.push((w as u8) - 1- x_curr.to_usize().expect("Conversion failed") as u8 - d_curr as u8);
+    out.push((w as u8) - 1 - x_curr.to_usize().expect("Conversion failed") as u8 - d_curr as u8);
     out
 }
 
@@ -197,15 +197,15 @@ pub fn hypercube_find_layer(x: BigUint, v: usize) -> (usize, BigUint) {
     return (d, val);
 }
 
- /// Map a vertex `a` in layer `d` to its index x in [0, layer_size(v, d)).
+/// Map a vertex `a` in layer `d` to its index x in [0, layer_size(v, d)).
 ///
 /// Caller must make sure that precompute_global has been called before.
 pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
     assert_eq!(a.len(), v);
     let mut x_curr = BigUint::from(0u32);
-    let mut d_curr = w - 1 -a[v - 1] as usize;
+    let mut d_curr = w - 1 - a[v - 1] as usize;
 
-        let all_layers = ALL_LAYER_SIZES.lock().unwrap();
+    let all_layers = ALL_LAYER_SIZES.lock().unwrap();
 
     for i in (0..v - 1).rev() {
         let ji = w - 1 - a[i] as usize;
@@ -225,26 +225,21 @@ mod tests {
     use num_bigint::BigUint;
     use num_traits::ToPrimitive;
 
-
-
     #[test]
     fn test_maps() {
         let w = 4;
         let v = 8;
         let d = 20;
         load_layer_sizes(w);
-        let max_x = ALL_LAYER_SIZES
-            .lock()
-            .unwrap()[v][d]
+        let max_x = ALL_LAYER_SIZES.lock().unwrap()[v][d]
             .clone()
             .to_usize()
             .expect("Conversion failed in test_maps");
-        for x_usize in 0..max_x
-        {
+        for x_usize in 0..max_x {
             let x = BigUint::from(x_usize);
             let a = map_to_vertex(w, v, d, x.clone());
             let layer: usize = a.iter().map(|&x| x as usize).sum();
-            assert_eq!((w-1)*v-layer,d);
+            assert_eq!((w - 1) * v - layer, d);
             let y = map_to_integer(w, v, d, &a);
             let b = map_to_vertex(w, v, d, y.clone());
             assert_eq!(x, y);

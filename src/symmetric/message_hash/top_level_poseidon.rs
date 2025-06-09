@@ -10,8 +10,8 @@ use zkhash::poseidon2::poseidon2_instance_babybear::POSEIDON2_BABYBEAR_24_PARAMS
 use super::MessageHash;
 use crate::hypercube::hypercube_find_layer;
 use crate::hypercube::hypercube_part_size;
-use crate::hypercube::map_to_vertex;
 use crate::hypercube::load_layer_sizes;
+use crate::hypercube::map_to_vertex;
 use crate::symmetric::message_hash::poseidon::encode_epoch;
 use crate::symmetric::message_hash::poseidon::encode_message;
 use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
