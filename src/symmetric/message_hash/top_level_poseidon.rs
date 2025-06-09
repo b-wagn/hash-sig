@@ -159,7 +159,7 @@ impl<
 
         // POS_OUTPUT_LEN_FE must be a multiple of 8
         assert!(
-            POS_OUTPUT_LEN_FE % 24 == 0,
+            POS_OUTPUT_LEN_FE % 8 == 0,
             "Top Level Poseidon Message Hash: POS_OUTPUT_LEN_FE must be a multiple of 8"
         );
 

@@ -25,7 +25,7 @@ pub mod lifetime_2_to_the_18 {
     const CAPACITY: usize = 9;
 
     const POSEIDON_INVOCATIONS: usize = 2;
-    const POS_OUTPUT_LEN_FE: usize = POSEIDON_INVOCATIONS * 24;
+    const POS_OUTPUT_LEN_FE: usize = POSEIDON_INVOCATIONS * 8;
 
     type MH = TopLevelPoseidonMessageHash<
         POS_OUTPUT_LEN_FE,
@@ -95,7 +95,7 @@ pub mod lifetime_2_to_the_26 {
     const CAPACITY: usize = 9;
 
     const POSEIDON_INVOCATIONS: usize = 2;
-    const POS_OUTPUT_LEN_FE: usize = POSEIDON_INVOCATIONS * 24;
+    const POS_OUTPUT_LEN_FE: usize = POSEIDON_INVOCATIONS * 8;
 
     type MH = TopLevelPoseidonMessageHash<
         POS_OUTPUT_LEN_FE,
