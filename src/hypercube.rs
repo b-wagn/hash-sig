@@ -226,6 +226,23 @@ mod tests {
     use num_traits::ToPrimitive;
 
     #[test]
+    #[cfg(not(debug_assertions))] // takes seconds to run on release mode.
+    fn test_layer_sizes() {
+        for w in 2..25 {
+            let lhs = {
+                load_layer_sizes(w);
+                ALL_LAYER_SIZES.lock().unwrap().clone()
+            };
+            let rhs = {
+                let v_max = 100;
+                precompute_global(v_max, w);
+                ALL_LAYER_SIZES.lock().unwrap().clone()
+            };
+            assert_eq!(lhs, rhs)
+        }
+    }
+
+    #[test]
     fn test_maps() {
         let w = 4;
         let v = 8;
