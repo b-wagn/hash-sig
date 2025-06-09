@@ -226,7 +226,7 @@ mod tests {
     use num_traits::ToPrimitive;
 
     #[test]
-    #[cfg(not(debug_assertions))] // takes seconds to run on release mode.
+    #[cfg(feature = "slow-tests")] // takes seconds to run on release mode.
     fn test_layer_sizes() {
         for w in 2..25 {
             let lhs = {
