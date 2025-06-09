@@ -20,7 +20,7 @@ fn binom(n: usize, k: usize) -> BigUint {
         return BigUint::from(0u32);
     }
     let binoms = BINOMS.lock().unwrap();
-    if binoms.len() < n {
+    if binoms.len() < n + 1 {
         panic!("BINOMS cache is empty. Call precompute_local before calling binom.");
     }
     binoms[n][k].clone()
