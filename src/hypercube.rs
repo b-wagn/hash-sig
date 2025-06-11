@@ -1,3 +1,5 @@
+use dashmap::mapref::one::Ref;
+use dashmap::DashMap;
 use num_bigint::BigInt;
 use num_bigint::BigUint;
 use num_traits::One;
@@ -5,12 +7,10 @@ use num_traits::ToPrimitive;
 use num_traits::Zero;
 use once_cell::sync::Lazy;
 use std::cmp::{max, min};
-use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::ops::Deref;
 use std::sync::Mutex;
-use std::sync::MutexGuard;
 
 /// Max dimension precomputed for layer sizes.
 const MAX_DIMENSION: usize = 100;
@@ -18,20 +18,19 @@ const MAX_DIMENSION: usize = 100;
 /// Global caches for binomial coefficients.
 static BINOMS: Lazy<Mutex<Vec<Vec<BigUint>>>> = Lazy::new(|| Mutex::new(vec![]));
 /// Global caches for layer sizes of base, each has up to dimension `MAX_DIMENSION`.
-static ALL_LAYER_SIZES_OF_BASE: Lazy<Mutex<BTreeMap<usize, Vec<Vec<BigUint>>>>> =
-    Lazy::new(|| Mutex::new(BTreeMap::new()));
+static ALL_LAYER_SIZES_OF_BASE: Lazy<DashMap<usize, Vec<Vec<BigUint>>>> = Lazy::new(DashMap::new);
 
 /// All layer sizes of base `w` with dimension up to `MAX_DIMENSION`.
-struct AllLayerSizes<'a> {
-    w: usize,
-    guard: MutexGuard<'a, BTreeMap<usize, Vec<Vec<BigUint>>>>,
-}
+struct AllLayerSizes<'a>(Ref<'a, usize, Vec<Vec<BigUint>>>);
 
 impl AllLayerSizes<'_> {
     fn new(w: usize) -> Self {
-        let mut guard = ALL_LAYER_SIZES_OF_BASE.lock().unwrap();
-        guard.entry(w).or_insert_with(|| prepare_layer_sizes(w));
-        Self { w, guard }
+        if !ALL_LAYER_SIZES_OF_BASE.contains_key(&w) {
+            ALL_LAYER_SIZES_OF_BASE
+                .entry(w)
+                .or_insert_with(|| prepare_layer_sizes(w));
+        }
+        Self(ALL_LAYER_SIZES_OF_BASE.get(&w).unwrap())
     }
 }
 
@@ -39,7 +38,7 @@ impl Deref for AllLayerSizes<'_> {
     type Target = Vec<Vec<BigUint>>;
 
     fn deref(&self) -> &Self::Target {
-        &self.guard[&self.w]
+        &self.0
     }
 }
 
