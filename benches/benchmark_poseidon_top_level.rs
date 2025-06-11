@@ -2,7 +2,6 @@ use criterion::{black_box, Criterion, SamplingMode};
 use rand::{thread_rng, Rng};
 
 use hashsig::{
-    hypercube::prepare_layer_sizes,
     signature::{
         generalized_xmss::instantiations_poseidon_top_level::{
             lifetime_2_to_the_18::SIGTopLevelTargetSumLifetime18Dim40Base12,
@@ -89,14 +88,12 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
 
 pub fn bench_function_poseidon_top_level(c: &mut Criterion) {
     // benchmarking lifetime 2^18
-    prepare_layer_sizes(12);
     benchmark_signature_scheme::<SIGTopLevelTargetSumLifetime18Dim40Base12>(
         c,
         "Top Level Target Sum, Lifetime 2^18, Dimension 40, Base 12",
     );
 
     // benchmarking lifetime 2^26
-    prepare_layer_sizes(8);
     benchmark_signature_scheme::<SIGTopLevelTargetSumLifetime26Dim64Base8>(
         c,
         "Top Level Target Sum, Lifetime 2^26, Dimension 64, Base 8",

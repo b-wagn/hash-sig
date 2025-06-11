@@ -41,11 +41,11 @@ fn map_into_hypercube_part<
     }
 
     // take this big int modulo the total output domain size
-    let dom_size = hypercube_part_size(DIMENSION, FINAL_LAYER);
+    let dom_size = hypercube_part_size(BASE, DIMENSION, FINAL_LAYER);
     acc = &acc % dom_size;
 
     // Figure out in which layer we are
-    let (layer, offset) = hypercube_find_layer(acc, DIMENSION);
+    let (layer, offset) = hypercube_find_layer(BASE, DIMENSION, acc);
 
     // now map this number to a vertex in the output domain
     map_to_vertex(BASE, DIMENSION, layer, offset)
@@ -220,7 +220,6 @@ mod tests {
     use zkhash::ark_ff::One;
     use zkhash::ark_ff::UniformRand;
 
-    use crate::hypercube::prepare_layer_sizes;
     use crate::symmetric::message_hash::{
         top_level_poseidon::TopLevelPoseidonMessageHash, MessageHash,
     };
@@ -230,9 +229,6 @@ mod tests {
         const BASE: usize = 12;
         const DIMENSION: usize = 40;
         const FINAL_LAYER: usize = 175;
-
-        // pre-computation
-        prepare_layer_sizes(BASE);
 
         type MH = TopLevelPoseidonMessageHash<48, DIMENSION, BASE, FINAL_LAYER, 3, 9, 4, 4>;
 

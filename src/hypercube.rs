@@ -5,14 +5,43 @@ use num_traits::ToPrimitive;
 use num_traits::Zero;
 use once_cell::sync::Lazy;
 use std::cmp::{max, min};
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::ops::Deref;
 use std::sync::Mutex;
+use std::sync::MutexGuard;
 
-// Global caches for binomial coefficients, and layer sizes
+/// Max dimension precomputed for layer sizes.
+const MAX_DIMENSION: usize = 100;
+
+/// Global caches for binomial coefficients.
 static BINOMS: Lazy<Mutex<Vec<Vec<BigUint>>>> = Lazy::new(|| Mutex::new(vec![]));
-static LAYER_SIZES: Lazy<Mutex<Vec<BigUint>>> = Lazy::new(|| Mutex::new(vec![]));
-static ALL_LAYER_SIZES: Lazy<Mutex<Vec<Vec<BigUint>>>> = Lazy::new(|| Mutex::new(vec![]));
+/// Global caches for layer sizes of base, each has up to dimension `MAX_DIMENSION`.
+static ALL_LAYER_SIZES_OF_BASE: Lazy<Mutex<BTreeMap<usize, Vec<Vec<BigUint>>>>> =
+    Lazy::new(|| Mutex::new(BTreeMap::new()));
+
+/// All layer sizes of base `w` with dimension up to `MAX_DIMENSION`.
+struct AllLayerSizes<'a> {
+    w: usize,
+    guard: MutexGuard<'a, BTreeMap<usize, Vec<Vec<BigUint>>>>,
+}
+
+impl AllLayerSizes<'_> {
+    fn new(w: usize) -> Self {
+        let mut guard = ALL_LAYER_SIZES_OF_BASE.lock().unwrap();
+        guard.entry(w).or_insert_with(|| prepare_layer_sizes(w));
+        Self { w, guard }
+    }
+}
+
+impl Deref for AllLayerSizes<'_> {
+    type Target = Vec<Vec<BigUint>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.guard[&self.w]
+    }
+}
 
 /// Outputs the binomial coefficient binom(n, k) (n choose k)
 fn binom(n: usize, k: usize) -> BigUint {
@@ -61,39 +90,18 @@ fn precompute_binoms(v: usize, w: usize) {
     }
 }
 
-/// Precompute binomial coefficients, and layer sizes for a given (v, w).
-/// The hypercube is [0, w-1]^v.
-///
-/// Precompute binomials n choose k for n up to v + (w-1)v
-/// Precompute layer sizes from 0 to (w-1)v
-fn precompute_local(v: usize, w: usize) {
-    let max_distance = (w - 1) * v;
-
-    // precompute binoms
-    precompute_binoms(v, w);
-
-    // precompute layer sizes
-    // note: BINOMS has now been precomputed so we can call the nb function
-    let mut layer_sizes = vec![BigUint::from(0u32); max_distance + 1];
-    for i in 0..=max_distance {
-        layer_sizes[i] = nb(i, w - 1, v);
-    }
-    *LAYER_SIZES.lock().unwrap() = layer_sizes;
-}
-
-/// load or compute layer sizes up to some v_max=100
-pub fn prepare_layer_sizes(w: usize) {
-    let v_max = 100;
+/// Load or compute layer sizes up to some `v_max = MAX_DIMENSION`
+fn prepare_layer_sizes(w: usize) -> Vec<Vec<BigUint>> {
+    let v_max = MAX_DIMENSION;
     let mut all_layers = vec![vec![]; v_max + 1];
     for v in 1..=v_max {
         let max_distance = (w - 1) * v;
-        all_layers[v] = vec![BigUint::from(0 as u16); max_distance + 1]
+        all_layers[v] = vec![BigUint::from(0_u16); max_distance + 1]
     }
     let filename = format!("precompute/layer_sizes_w_{}_v_upto_{}.txt", w, v_max);
-    let res = File::open(filename);
-    match res {
-        Ok(_) => {
-            let reader = BufReader::new(res.unwrap());
+    match File::open(filename) {
+        Ok(res) => {
+            let reader = BufReader::new(res);
             for line in reader.lines() {
                 let line = line.expect("correct line");
                 let parts: Vec<&str> = line.split(',').collect();
@@ -108,24 +116,17 @@ pub fn prepare_layer_sizes(w: usize) {
             }
         }
         Err(_) => {
+            precompute_binoms(v_max, w);
             for v in 1..=v_max {
-                precompute_local(v, w);
-                all_layers[v] = LAYER_SIZES.lock().unwrap().clone();
+                let max_distance = (w - 1) * v;
+                for i in 0..=max_distance {
+                    all_layers[v][i] = nb(i, w - 1, v);
+                }
             }
         }
     }
-    *ALL_LAYER_SIZES.lock().unwrap() = all_layers;
+    all_layers
 }
-
-// /// Precompute all layer sizes for hypercubes [0, w-1]^v for v in 1..=v_max.
-// fn precompute_global(v_max: usize, w: usize) {
-//     let mut all_layers = vec![vec![]];
-//     for v in 1..=v_max {
-//         precompute_local(v, w);
-//         all_layers.push(LAYER_SIZES.lock().unwrap().clone());
-//     }
-//     *ALL_LAYER_SIZES.lock().unwrap() = all_layers;
-// }
 
 /// Map an integer x in [0, layer_size(v, d)) to a vertex in layer d
 /// of the hypercube [0, w-1]^v.
@@ -138,7 +139,7 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
     let mut out = Vec::with_capacity(v);
     let mut d_curr = d;
 
-    let all_layers = ALL_LAYER_SIZES.lock().unwrap();
+    let all_layers = AllLayerSizes::new(w);
     assert!(x_curr < all_layers[v][d]);
 
     for i in 1..v {
@@ -168,8 +169,8 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
 /// returns the total size of layers 0 to d (inclusive) in hypercube [0, w-1]^v.
 ///
 /// Caller needs to make sure that d is a valid layer: 0 <= d <= v * (w-1)
-pub fn hypercube_part_size(v: usize, d: usize) -> BigUint {
-    let all_layers = ALL_LAYER_SIZES.lock().unwrap();
+pub fn hypercube_part_size(w: usize, v: usize, d: usize) -> BigUint {
+    let all_layers = AllLayerSizes::new(w);
     let mut sum = BigUint::zero();
     for l in 0..=d {
         sum += &all_layers[v][l];
@@ -184,8 +185,8 @@ pub fn hypercube_part_size(v: usize, d: usize) -> BigUint {
 /// Returns d and x-L_<d
 ///
 /// Caller needs to make sure that x < w^v
-pub fn hypercube_find_layer(x: BigUint, v: usize) -> (usize, BigUint) {
-    let all_layers = ALL_LAYER_SIZES.lock().unwrap();
+pub fn hypercube_find_layer(w: usize, v: usize, x: BigUint) -> (usize, BigUint) {
+    let all_layers = AllLayerSizes::new(w);
     let mut d = 0;
     let mut val = x;
     while val >= all_layers[v][d] {
@@ -204,7 +205,7 @@ pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
     let mut x_curr = BigUint::from(0u32);
     let mut d_curr = w - 1 - a[v - 1] as usize;
 
-    let all_layers = ALL_LAYER_SIZES.lock().unwrap();
+    let all_layers = AllLayerSizes::new(w);
 
     for i in (0..v - 1).rev() {
         let ji = w - 1 - a[i] as usize;
@@ -225,29 +226,11 @@ mod tests {
     use num_traits::ToPrimitive;
 
     #[test]
-    #[cfg(feature = "slow-tests")] // takes seconds to run on release mode.
-    fn test_layer_sizes() {
-        for w in 2..25 {
-            let lhs = {
-                prepare_layer_sizes(w);
-                ALL_LAYER_SIZES.lock().unwrap().clone()
-            };
-            let rhs = {
-                let v_max = 100;
-                precompute_global(v_max, w);
-                ALL_LAYER_SIZES.lock().unwrap().clone()
-            };
-            assert_eq!(lhs, rhs)
-        }
-    }
-
-    #[test]
     fn test_maps() {
         let w = 4;
         let v = 8;
         let d = 20;
-        prepare_layer_sizes(w);
-        let max_x = ALL_LAYER_SIZES.lock().unwrap()[v][d]
+        let max_x = AllLayerSizes::new(w)[v][d]
             .clone()
             .to_usize()
             .expect("Conversion failed in test_maps");
@@ -268,7 +251,6 @@ mod tests {
         let w = 12;
         let v = 40;
         let d = 174;
-        prepare_layer_sizes(w);
         let dec_string = b"21790506781852242898091207809690042074412";
         let x = BigUint::parse_bytes(dec_string, 10).expect("Invalid input");
         let a = map_to_vertex(w, v, d, x.clone());
@@ -280,13 +262,13 @@ mod tests {
 
     #[test]
     fn test_nb() {
-        precompute_local(3, 2);
+        precompute_binoms(3, 2);
         assert_eq!(nb(0, 1, 3), BigUint::from(1u32));
         assert_eq!(nb(1, 1, 3), BigUint::from(3u32));
         assert_eq!(nb(2, 1, 3), BigUint::from(3u32));
         assert_eq!(nb(3, 1, 3), BigUint::from(1u32));
 
-        precompute_local(4, 5);
+        precompute_binoms(4, 5);
         assert_eq!(nb(6, 3, 5), BigUint::from(135u32));
         assert_eq!(nb(12, 3, 5), BigUint::from(35u32));
         assert_eq!(nb(2, 3, 5), BigUint::from(15u32));
