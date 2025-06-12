@@ -22,7 +22,7 @@ impl AllLayerSizes<'_> {
         if !ALL_LAYER_SIZES_OF_BASE.contains_key(&w) {
             ALL_LAYER_SIZES_OF_BASE
                 .entry(w)
-                .or_insert_with(|| prepare_layer_sizes_new(w));
+                .or_insert_with(|| prepare_layer_sizes(w));
         }
         Self(ALL_LAYER_SIZES_OF_BASE.get(&w).unwrap())
     }
@@ -37,7 +37,7 @@ impl Deref for AllLayerSizes<'_> {
 }
 
 /// Compute layer sizes up to some `v_max = MAX_DIMENSION` by Lemma 8.
-fn prepare_layer_sizes_new(w: usize) -> Vec<Vec<BigUint>> {
+fn prepare_layer_sizes(w: usize) -> Vec<Vec<BigUint>> {
     let v_max = MAX_DIMENSION;
     let mut all_layers = vec![vec![]; v_max + 1];
 
@@ -227,7 +227,7 @@ mod tests {
     #[test]
     fn test_prepare_layer_sizes() {
         for w in 2..13 {
-            assert_eq!(prepare_layer_sizes_by_binom(w), prepare_layer_sizes_new(w));
+            assert_eq!(prepare_layer_sizes_by_binom(w), prepare_layer_sizes(w));
         }
     }
 
