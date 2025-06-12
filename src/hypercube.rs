@@ -127,6 +127,30 @@ fn prepare_layer_sizes(w: usize) -> Vec<Vec<BigUint>> {
     all_layers
 }
 
+/// Compute layer sizes up to some `v_max = MAX_DIMENSION` by Lemma 8.
+fn prepare_layer_sizes_new(w: usize) -> Vec<Vec<BigUint>> {
+    let v_max = MAX_DIMENSION;
+    let mut all_layers = vec![vec![]; v_max + 1];
+
+    // Dimension 1 has layer size 1 for every distance.
+    all_layers[1] = vec![BigUint::one(); w];
+
+    for v in 2..=v_max {
+        let max_distance = (w - 1) * v;
+        // \ell_d^v = \sum_{max(w-d, 1) \le a_1 \le min(w, w+(w-1)(v-1)-d)} \ell_{d-(w-a_1)}^{v-1}
+        all_layers[v] = (0..max_distance + 1)
+            .map(|d| {
+                let a_i_range = max(w.saturating_sub(d), 1)..=min(w, w + (w - 1) * (v - 1) - d);
+                all_layers[v - 1][d - (w - a_i_range.start())..=d - (w - a_i_range.end())]
+                    .iter()
+                    .sum()
+            })
+            .collect();
+    }
+
+    all_layers
+}
+
 /// Map an integer x in [0, layer_size(v, d)) to a vertex in layer d
 /// of the hypercube [0, w-1]^v.
 ///
@@ -223,6 +247,13 @@ mod tests {
     use super::*;
     use num_bigint::BigUint;
     use num_traits::ToPrimitive;
+
+    #[test]
+    fn test_prepare_layer_sizes() {
+        for w in 2..13 {
+            assert_eq!(prepare_layer_sizes_new(w), prepare_layer_sizes(w));
+        }
+    }
 
     #[test]
     fn test_maps() {
