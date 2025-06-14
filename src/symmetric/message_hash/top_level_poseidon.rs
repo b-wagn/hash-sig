@@ -1,4 +1,5 @@
 use num_bigint::BigUint;
+use num_traits::Zero;
 use zkhash::ark_ff::MontConfig;
 use zkhash::ark_ff::PrimeField;
 use zkhash::ark_ff::UniformRand;
@@ -39,7 +40,7 @@ fn map_into_hypercube_part<
 
     // Take this big integer modulo the total output domain size
     let dom_size = hypercube_part_size(BASE, DIMENSION, FINAL_LAYER);
-    acc = &acc % dom_size;
+    acc %= dom_size;
 
     // Figure out in which layer we are, and index of the vertex in the layer
     let (layer, offset) = hypercube_find_layer(BASE, DIMENSION, acc);
@@ -126,7 +127,7 @@ impl<
 
         // now, invoke Poseidon a few times, to get field elements
         let iterations = POS_OUTPUT_LEN_FE / 8;
-        let mut pos_outputs = [F::from(0); POS_OUTPUT_LEN_FE];
+        let mut pos_outputs = [F::zero(); POS_OUTPUT_LEN_FE];
         for i in 0..iterations {
             // iteration domain separator
             let iteration_index = [F::from(i as u8)];
@@ -148,7 +149,6 @@ impl<
         // turn the field elements into an element in the part
         // of the hypercube that we care about.
         map_into_hypercube_part::<DIMENSION, BASE, FINAL_LAYER, POS_OUTPUT_LEN_FE>(&pos_outputs)
-            .to_vec()
     }
 
     #[cfg(test)]
