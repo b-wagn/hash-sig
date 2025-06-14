@@ -219,6 +219,7 @@ mod tests {
     use num_traits::FromPrimitive;
     use num_traits::ToPrimitive;
     use num_traits::Zero;
+    use proptest::prelude::*;
     use std::sync::Mutex;
 
     // Reference implementation for testing purposes
@@ -460,5 +461,42 @@ mod tests {
         let (d4, rem4) = hypercube_find_layer(w, v, BigUint::from(8u32));
         assert_eq!(d4, 4);
         assert_eq!(rem4, BigUint::zero());
+    }
+
+    proptest! {
+        #[test]
+        fn prop_map_vertex_roundtrip(
+            w in 2usize..8,
+            v in 1usize..16,
+            x in 0u64..100_000,
+        ) {
+            // Compute the total number of vertices in the hypercube [0, w-1]^v
+            let total_size = BigUint::from(w).pow(v as u32);
+
+            // Convert the sampled integer x to BigUint
+            let x_big = BigUint::from(x);
+
+            // Skip values that exceed the total number of vertices in the hypercube
+            prop_assume!(x_big < total_size);
+
+            // Given a global index x, determine which layer it belongs to
+            // and its offset within that layer.
+            let (d, rem) = hypercube_find_layer(w, v, x_big.clone());
+
+            // Convert the offset `rem` in layer `d` to an actual vertex in [0, w-1]^v.
+            let a = map_to_vertex(w, v, d, rem.clone());
+
+            // Convert the vertex back to its local index in layer `d`.
+            let y = map_to_integer(w, v, d, &a);
+
+            // Double-check by mapping y back to the same vertex.
+            let b = map_to_vertex(w, v, d, y.clone());
+
+            // The index returned by `map_to_integer` should equal the original remainder.
+            prop_assert_eq!(rem, y);
+
+            // The vertex should be unchanged after round-tripping.
+            prop_assert_eq!(a, b);
+        }
     }
 }
