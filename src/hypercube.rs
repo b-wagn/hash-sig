@@ -59,9 +59,9 @@ impl AllLayerData<'_> {
         Self(ALL_LAYER_INFO_OF_BASE.get(&w).unwrap())
     }
 
-    /// Gets the `d`-th layer.
-    fn layer(&self, d: usize) -> &LayerInfo {
-        &self.0[d]
+    /// Gets the `LayerInfo` of dimension `v`.
+    fn layer_info_for_dimension(&self, v: usize) -> &LayerInfo {
+        &self.0[v]
     }
 
     /// Gets the raw layer sizes for dimension `v`.
@@ -95,7 +95,6 @@ fn prepare_layer_info(w: usize) -> AllLayerInfoForBase {
     // Inductive step: compute for dimensions v = 2 to v_max
     for v in 2..=v_max {
         let max_d = (w - 1) * v;
-        let prev_layer = &all_info[v - 1];
 
         // Compute the sizes for the current dimension `v`.
         let current_sizes: Vec<BigUint> = (0..=max_d)
@@ -113,7 +112,7 @@ fn prepare_layer_info(w: usize) -> AllLayerInfoForBase {
                 let d_prime_end = d - (w - a_i_end);
 
                 // Sum over the relevant slice of the previous dimension's layer sizes.
-                prev_layer.sizes_sum_in_range(d_prime_start..=d_prime_end)
+                all_info[v - 1].sizes_sum_in_range(d_prime_start..=d_prime_end)
             })
             .collect();
 
@@ -223,7 +222,7 @@ pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
         d_curr += ji;
         let j_start = d_curr.saturating_sub((w - 1) * (v - i - 1));
         x_curr += layer_data
-            .layer(v - i - 1)
+            .layer_info_for_dimension(v - i - 1)
             .sizes_sum_in_range(d_curr - ji + 1..=d_curr - j_start);
     }
     assert_eq!(d_curr, d);
