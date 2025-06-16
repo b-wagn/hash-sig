@@ -27,6 +27,8 @@ struct LayerInfo {
 impl LayerInfo {
     /// Sum of `sizes` in inclusive `range`, calculated by subtraction of
     /// `prefix_sums`.
+    ///
+    /// Equal to `sizes[range].iter().sum()`.
     fn sizes_sum_in_range(&self, range: RangeInclusive<usize>) -> BigUint {
         if *range.start() == 0 {
             self.prefix_sums[*range.end()].clone()
