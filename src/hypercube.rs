@@ -6,6 +6,7 @@ use num_traits::ToPrimitive;
 use num_traits::Zero;
 use once_cell::sync::Lazy;
 use std::cmp::{max, min};
+use std::ops::RangeInclusive;
 
 /// Max dimension precomputed for layer sizes.
 const MAX_DIMENSION: usize = 100;
@@ -21,6 +22,18 @@ struct LayerInfo {
     ///
     /// `prefix_sums[d] = sizes[0] + ... + sizes[d]`.
     prefix_sums: Vec<BigUint>,
+}
+
+impl LayerInfo {
+    /// Sum of `sizes` in inclusive `range`, calculated by subtraction of
+    /// `prefix_sums`.
+    fn sizes_sum_in_range(&self, range: RangeInclusive<usize>) -> BigUint {
+        if *range.start() == 0 {
+            self.prefix_sums[*range.end()].clone()
+        } else {
+            &self.prefix_sums[*range.end()] - &self.prefix_sums[range.start() - 1]
+        }
+    }
 }
 
 /// A vector of `LayerInfo`, indexed by the dimension `v`.
@@ -42,6 +55,11 @@ impl AllLayerData<'_> {
             .entry(w)
             .or_insert_with(|| prepare_layer_info(w));
         Self(ALL_LAYER_INFO_OF_BASE.get(&w).unwrap())
+    }
+
+    /// Gets the `d`-th layer.
+    fn layer(&self, d: usize) -> &LayerInfo {
+        &self.0[d]
     }
 
     /// Gets the raw layer sizes for dimension `v`.
@@ -75,7 +93,7 @@ fn prepare_layer_info(w: usize) -> AllLayerInfoForBase {
     // Inductive step: compute for dimensions v = 2 to v_max
     for v in 2..=v_max {
         let max_d = (w - 1) * v;
-        let prev_layer_sizes = &all_info[v - 1].sizes;
+        let prev_layer = &all_info[v - 1];
 
         // Compute the sizes for the current dimension `v`.
         let current_sizes: Vec<BigUint> = (0..=max_d)
@@ -93,7 +111,7 @@ fn prepare_layer_info(w: usize) -> AllLayerInfoForBase {
                 let d_prime_end = d - (w - a_i_end);
 
                 // Sum over the relevant slice of the previous dimension's layer sizes.
-                prev_layer_sizes[d_prime_start..=d_prime_end].iter().sum()
+                prev_layer.sizes_sum_in_range(d_prime_start..=d_prime_end)
             })
             .collect();
 
@@ -201,12 +219,10 @@ pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
     for i in (0..v - 1).rev() {
         let ji = w - 1 - a[i] as usize;
         d_curr += ji;
-        let d_curr_isize = d_curr as isize;
-        let range_start = max(0, d_curr_isize - (w as isize - 1) * (v - i - 1) as isize) as usize;
-        for j in range_start..ji {
-            let count = layer_data.sizes(v - i - 1)[d_curr - j].clone();
-            x_curr += count;
-        }
+        let j_start = d_curr.saturating_sub((w - 1) * (v - i - 1));
+        x_curr += layer_data
+            .layer(v - i - 1)
+            .sizes_sum_in_range(d_curr - ji + 1..=d_curr - j_start);
     }
     assert_eq!(d_curr, d);
     x_curr
