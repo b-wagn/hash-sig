@@ -11,54 +11,95 @@ pub struct HashTree<TH: TweakableHash> {
     layers: Vec<Vec<TH::Domain>>,
 }
 
-/// Function to compute a hash-tree given the leafs hashes as input.
-/// The number of leafs hashes must be a power of two.
-pub fn build_tree<TH: TweakableHash>(
-    parameter: &TH::Parameter,
-    leafs_hashes: Vec<TH::Domain>,
-) -> HashTree<TH> {
-    // check that number of leafs is a power of two
-    assert!(
-        leafs_hashes.len().is_power_of_two(),
-        "Hash-Tree build_tree: Number of leafs should be power of two"
-    );
-
-    let mut layer_size = leafs_hashes.len();
-    let mut layers: Vec<Vec<TH::Domain>> = Vec::with_capacity(layer_size.ilog2() as usize + 1);
-
-    // the bottom layer contains the individual hashes of all leafs
-    layers.push(leafs_hashes);
-
-    // now, we build each layer by hashing pairs in the previous layer
-    let mut level: u8 = 1;
-    while layer_size >= 2 {
-        // this new layer will have half the size
-        layer_size /= 2;
-        // parallelize the two to one compressions
-        layers.push(
-            (0..layer_size)
-                .into_par_iter()
-                .map(|i| {
-                    let left_idx = 2 * i;
-                    let right_idx = 2 * i + 1;
-                    let tweak = TH::tree_tweak(level, i as u32);
-                    let children = &layers[(level - 1) as usize][left_idx..=right_idx];
-                    TH::apply(parameter, &tweak, children)
-                })
-                .collect(),
+impl<TH> HashTree<TH>
+where
+    TH: TweakableHash,
+{
+    /// Function to compute a hash-tree given the leafs hashes as input.
+    /// The number of leafs hashes must be a power of two.
+    pub fn new(parameter: &TH::Parameter, leafs_hashes: Vec<TH::Domain>) -> Self {
+        // check that number of leafs is a power of two
+        assert!(
+            leafs_hashes.len().is_power_of_two(),
+            "Hash-Tree build_tree: Number of leafs should be power of two"
         );
-        level += 1;
+
+        let mut layer_size = leafs_hashes.len();
+        let mut layers: Vec<Vec<TH::Domain>> = Vec::with_capacity(layer_size.ilog2() as usize + 1);
+
+        // the bottom layer contains the individual hashes of all leafs
+        layers.push(leafs_hashes);
+
+        // now, we build each layer by hashing pairs in the previous layer
+        let mut level: u8 = 1;
+        while layer_size >= 2 {
+            // this new layer will have half the size
+            layer_size /= 2;
+            // parallelize the two to one compressions
+            layers.push(
+                (0..layer_size)
+                    .into_par_iter()
+                    .map(|i| {
+                        let left_idx = 2 * i;
+                        let right_idx = 2 * i + 1;
+                        let tweak = TH::tree_tweak(level, i as u32);
+                        let children = &layers[(level - 1) as usize][left_idx..=right_idx];
+                        TH::apply(parameter, &tweak, children)
+                    })
+                    .collect(),
+            );
+            level += 1;
+        }
+
+        Self { layers }
     }
 
-    HashTree { layers }
-}
+    /// Function to get a root from a tree. The tree must have at least one layer.
+    /// A root is just an output of the tweakable hash.
+    pub fn root(&self) -> TH::Domain {
+        self.layers
+            .last()
+            .expect("Hash-Tree must have at least one layer")[0]
+    }
 
-/// Function to get a root from a tree. The tree must have at least one layer.
-/// A root is just an output of the tweakable hash.
-pub fn hash_tree_root<TH: TweakableHash>(tree: &HashTree<TH>) -> TH::Domain {
-    tree.layers
-        .last()
-        .expect("Hash-Tree must have at least one layer")[0]
+    /// Function to compute the Merkle authentication path
+    /// from a tree and the position of the leaf. It is assumed
+    /// that the tree is well-formed, i.e., each layer is half
+    /// the size of the previous layer, and the final layer has
+    /// size 1.
+    pub fn path(&self, position: u32) -> HashTreeOpening<TH> {
+        assert!(
+            !self.layers.is_empty(),
+            "Hash-Tree hash tree path: Need at least one layer"
+        );
+        assert!(
+            (position as u64) < (self.layers[0].len() as u64),
+            "Hash-Tree hash tree path: Invalid position"
+        );
+
+        let depth = self.layers.len() - 1;
+
+        assert!(
+            depth <= 64,
+            "Hash-Tree hash tree path: Tree depth must be at most 64"
+        );
+
+        // in our co-path, we will have one node per layer
+        // except the final layer (which is just the root)
+        let mut co_path = Vec::with_capacity(depth);
+        let mut current_position = position;
+        for l in 0..depth {
+            // position of the sibling that we want to include
+            let sibling_position = current_position ^ 0x01;
+            // add to the co-path
+            let sibling = self.layers[l][sibling_position as usize];
+            co_path.push(sibling);
+            // new position in next layer
+            current_position >>= 1;
+        }
+
+        HashTreeOpening { co_path }
+    }
 }
 
 /// Opening in a hash-tree: a co-path, without the leaf
@@ -67,48 +108,6 @@ pub struct HashTreeOpening<TH: TweakableHash> {
     /// If the tree has depth h, i.e, 2^h leafs
     /// the co-path should have size D
     co_path: Vec<TH::Domain>,
-}
-
-/// Function to compute the Merkle authentication path
-/// from a tree and the position of the leaf. It is assumed
-/// that the tree is well-formed, i.e., each layer is half
-/// the size of the previous layer, and the final layer has
-/// size 1.
-pub fn hash_tree_path<TH: TweakableHash>(
-    tree: &HashTree<TH>,
-    position: u32,
-) -> HashTreeOpening<TH> {
-    assert!(
-        !tree.layers.is_empty(),
-        "Hash-Tree hash tree path: Need at least one layer"
-    );
-    assert!(
-        (position as u64) < (tree.layers[0].len() as u64),
-        "Hash-Tree hash tree path: Invalid position"
-    );
-
-    let depth = tree.layers.len() - 1;
-
-    assert!(
-        depth <= 64,
-        "Hash-Tree hash tree path: Tree depth must be at most 64"
-    );
-
-    // in our co-path, we will have one node per layer
-    // except the final layer (which is just the root)
-    let mut co_path = Vec::with_capacity(depth);
-    let mut current_position = position;
-    for l in 0..depth {
-        // position of the sibling that we want to include
-        let sibling_position = current_position ^ 0x01;
-        // add to the co-path
-        let sibling = tree.layers[l][sibling_position as usize];
-        co_path.push(sibling);
-        // new position in next layer
-        current_position >>= 1;
-    }
-
-    HashTreeOpening { co_path }
 }
 
 /// Function to verify an Merkle authentication path
@@ -210,15 +209,15 @@ mod tests {
             .collect();
 
         // Build the hash tree using the random parameter and leaves
-        let tree = build_tree(&parameter, leafs_hashes);
+        let tree = HashTree::<TestTH>::new(&parameter, leafs_hashes);
 
         // now compute a commitment, i.e., Merkle root
-        let root = hash_tree_root::<TestTH>(&tree);
+        let root = tree.root();
 
         // now check that opening and verification works as expected
         for position in 0..num_leafs {
             // first get the opening
-            let path = hash_tree_path(&tree, position);
+            let path = tree.path(position);
             // now assert that it verifies
             let leaf = leafs[position as usize].as_slice();
             assert!(hash_tree_verify(&parameter, &root, position, leaf, &path));
