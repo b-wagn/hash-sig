@@ -52,7 +52,7 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
         epoch: u32,
     ) -> Result<Vec<u8>, super::EncodingError> {
         // apply the message hash to get chunks
-        let chunks_message = MH::apply(parameter, epoch, randomness, message);
+        let mut chunks_message = MH::apply(parameter, epoch, randomness, message);
 
         // now, we compute the checksum
         let checksum: u64 = chunks_message
@@ -68,11 +68,9 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
         // we take all message chunks, followed by the checksum chunks.
         // Note that we only want to take the first NUM_CHUNKS_CHECKSUM chunks.
         // The remaining ones must be zero anyways.
-        Ok(chunks_message
-            .iter()
-            .chain(chunks_checksum.iter().take(NUM_CHUNKS_CHECKSUM))
-            .map(|&x| x as u8)
-            .collect())
+        chunks_message.extend_from_slice(&chunks_checksum[..NUM_CHUNKS_CHECKSUM]);
+
+        Ok(chunks_message)
     }
 
     #[cfg(test)]
