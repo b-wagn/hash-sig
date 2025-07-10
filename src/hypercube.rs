@@ -142,8 +142,8 @@ fn prepare_layer_info(w: usize) -> AllLayerInfoForBase {
 ///
 /// # Panics
 ///
-/// Panics if `d` is not a valid layer: `0 <= d <= v * (w-1)`, or if `x` is
-/// larger than hypercube's size: `x >= w^v`.
+/// Panics if `d` is not a valid layer. Valid layer means `0 <= d <= v * (w-1)`
+/// Panics if `x` is larger than hypercube's size: `x >= w^v`.
 pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
     let mut x_curr = x;
     let mut out = Vec::with_capacity(v);
@@ -181,7 +181,7 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
 ///
 /// # Panics
 ///
-/// Panics if `d` is not a valid layer. Valid layer means`0 <= d <= v * (w-1)`.
+/// Panics if `d` is not a valid layer. Valid layer means `0 <= d <= v * (w-1)`.
 pub fn hypercube_part_size(w: usize, v: usize, d: usize) -> BigUint {
     // With precomputed prefix sums, this is an efficient O(1) lookup.
     AllLayerData::new(w).prefix_sums(v)[d].clone()
@@ -222,9 +222,8 @@ pub fn hypercube_find_layer(w: usize, v: usize, x: BigUint) -> (usize, BigUint) 
 ///
 /// # Panics
 ///
-/// Panics if `d` is not a valid layer. Valid layer means`0 <= d <= v * (w-1)`, 
-/// Panics if `a` is
-/// not on layer `d`.
+/// Panics if `d` is not a valid layer. Valid layer means`0 <= d <= v * (w-1)`,
+/// Panics if `a` is not on layer `d`.
 pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
     assert_eq!(a.len(), v);
     let mut x_curr = BigUint::zero();
