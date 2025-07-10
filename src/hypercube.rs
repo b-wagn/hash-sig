@@ -4,9 +4,9 @@ use num_bigint::BigUint;
 use num_traits::One;
 use num_traits::ToPrimitive;
 use num_traits::Zero;
-use once_cell::sync::Lazy;
 use std::cmp::{max, min};
 use std::ops::RangeInclusive;
+use std::sync::LazyLock;
 
 /// Max dimension precomputed for layer sizes.
 const MAX_DIMENSION: usize = 100;
@@ -43,7 +43,8 @@ impl LayerInfo {
 type AllLayerInfoForBase = Vec<LayerInfo>;
 
 /// Global cache for layer info (sizes and prefix sums) for each base `w`.
-static ALL_LAYER_INFO_OF_BASE: Lazy<DashMap<usize, AllLayerInfoForBase>> = Lazy::new(DashMap::new);
+static ALL_LAYER_INFO_OF_BASE: LazyLock<DashMap<usize, AllLayerInfoForBase>> =
+    LazyLock::new(DashMap::new);
 
 /// Provides thread-safe, on-demand access to the cached layer data for a given base `w`.
 ///
@@ -241,7 +242,7 @@ mod tests {
     // Reference implementation for testing purposes
     fn prepare_layer_sizes_by_binom(w: usize) -> Vec<Vec<BigUint>> {
         /// Caches for binomial coefficients.
-        static BINOMS: Lazy<Mutex<Vec<Vec<BigUint>>>> = Lazy::new(|| Mutex::new(vec![]));
+        static BINOMS: LazyLock<Mutex<Vec<Vec<BigUint>>>> = LazyLock::new(|| Mutex::new(vec![]));
 
         /// Precompute binomials n choose k for n up to v + (w-1)v
         fn precompute_binoms(v: usize, w: usize) {
