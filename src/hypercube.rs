@@ -181,7 +181,7 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
 ///
 /// # Panics
 ///
-/// Panics if `d` is not a valid layer: `0 <= d <= v * (w-1)`.
+/// Panics if `d` is not a valid layer. Valid layer means`0 <= d <= v * (w-1)`.
 pub fn hypercube_part_size(w: usize, v: usize, d: usize) -> BigUint {
     // With precomputed prefix sums, this is an efficient O(1) lookup.
     AllLayerData::new(w).prefix_sums(v)[d].clone()
