@@ -4,7 +4,7 @@ use num_bigint::BigUint;
 use num_traits::One;
 use num_traits::ToPrimitive;
 use num_traits::Zero;
-use std::cmp::{max, min};
+use std::cmp::min;
 use std::ops::RangeInclusive;
 use std::sync::LazyLock;
 
@@ -151,8 +151,7 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
 
     for i in 1..v {
         let mut ji = usize::MAX;
-        let d_curr_isize = d_curr as isize;
-        let range_start = max(0, d_curr_isize - (w as isize - 1) * (v - i) as isize) as usize;
+        let range_start = d_curr.saturating_sub((w - 1) * (v - i));
 
         for j in range_start..=min(w - 1, d_curr) {
             let count = layer_data.sizes(v - i)[d_curr - j].clone();
@@ -164,12 +163,14 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
             }
         }
         assert!(ji < w);
-        let ai = (w - ji - 1) as u8;
-        out.push(ai);
-        d_curr -= w - 1 - ai as usize;
+        let ai = w - ji - 1;
+        out.push(ai as u8);
+        d_curr -= w - 1 - ai;
     }
-    assert!((&x_curr + BigUint::from(d_curr)) < BigUint::from(w));
-    out.push((w as u8) - 1 - x_curr.to_usize().expect("Conversion failed") as u8 - d_curr as u8);
+
+    let x_curr = x_curr.to_usize().unwrap();
+    assert!(x_curr + d_curr < w);
+    out.push((w - 1 - x_curr - d_curr) as u8);
     out
 }
 
