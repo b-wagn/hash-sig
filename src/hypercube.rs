@@ -4,9 +4,9 @@ use num_bigint::BigUint;
 use num_traits::One;
 use num_traits::ToPrimitive;
 use num_traits::Zero;
-use once_cell::sync::Lazy;
-use std::cmp::{max, min};
+use std::cmp::min;
 use std::ops::RangeInclusive;
+use std::sync::LazyLock;
 
 /// Max dimension precomputed for layer sizes.
 const MAX_DIMENSION: usize = 100;
@@ -43,7 +43,8 @@ impl LayerInfo {
 type AllLayerInfoForBase = Vec<LayerInfo>;
 
 /// Global cache for layer info (sizes and prefix sums) for each base `w`.
-static ALL_LAYER_INFO_OF_BASE: Lazy<DashMap<usize, AllLayerInfoForBase>> = Lazy::new(DashMap::new);
+static ALL_LAYER_INFO_OF_BASE: LazyLock<DashMap<usize, AllLayerInfoForBase>> =
+    LazyLock::new(DashMap::new);
 
 /// Provides thread-safe, on-demand access to the cached layer data for a given base `w`.
 ///
@@ -139,7 +140,10 @@ fn prepare_layer_info(w: usize) -> AllLayerInfoForBase {
 ///
 /// The vector that is returned has length v.
 ///
-/// **WARNING**: Caller needs to make sure that d is a valid layer: 0 <= d <= v * (w-1)
+/// # Panics
+///
+/// Panics if `d` is not a valid layer: `0 <= d <= v * (w-1)`, or if `x` is
+/// larger than hypercube's size: `x >= w^v`.
 pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
     let mut x_curr = x;
     let mut out = Vec::with_capacity(v);
@@ -150,8 +154,7 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
 
     for i in 1..v {
         let mut ji = usize::MAX;
-        let d_curr_isize = d_curr as isize;
-        let range_start = max(0, d_curr_isize - (w as isize - 1) * (v - i) as isize) as usize;
+        let range_start = d_curr.saturating_sub((w - 1) * (v - i));
 
         for j in range_start..=min(w - 1, d_curr) {
             let count = layer_data.sizes(v - i)[d_curr - j].clone();
@@ -163,18 +166,22 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
             }
         }
         assert!(ji < w);
-        let ai = (w - ji - 1) as u8;
-        out.push(ai);
-        d_curr -= w - 1 - ai as usize;
+        let ai = w - ji - 1;
+        out.push(ai as u8);
+        d_curr -= w - 1 - ai;
     }
-    assert!((&x_curr + BigUint::from(d_curr)) < BigUint::from(w));
-    out.push((w as u8) - 1 - x_curr.to_usize().expect("Conversion failed") as u8 - d_curr as u8);
+
+    let x_curr = x_curr.to_usize().unwrap();
+    assert!(x_curr + d_curr < w);
+    out.push((w - 1 - x_curr - d_curr) as u8);
     out
 }
 
 /// Returns the total size of layers 0 to d (inclusive) in hypercube [0, w-1]^v.
 ///
-/// **WARNING**: Caller needs to make sure that d is a valid layer: 0 <= d <= v * (w-1)
+/// # Panics
+///
+/// Panics if `d` is not a valid layer. Valid layer means`0 <= d <= v * (w-1)`.
 pub fn hypercube_part_size(w: usize, v: usize, d: usize) -> BigUint {
     // With precomputed prefix sums, this is an efficient O(1) lookup.
     AllLayerData::new(w).prefix_sums(v)[d].clone()
@@ -185,8 +192,12 @@ pub fn hypercube_part_size(w: usize, v: usize, d: usize) -> BigUint {
 ///
 /// Returns d and x-L_<d
 ///
-/// **WARNING**: Caller needs to make sure that x < w^v
+/// # Panics
+///
+/// Panics if `x` is larger than hypercube's size: `x >= w^v`.
 pub fn hypercube_find_layer(w: usize, v: usize, x: BigUint) -> (usize, BigUint) {
+    assert!(&x < AllLayerData::new(w).prefix_sums(v).last().unwrap());
+
     let layer_data = AllLayerData::new(w);
     let prefix_sums = layer_data.prefix_sums(v);
 
@@ -209,7 +220,11 @@ pub fn hypercube_find_layer(w: usize, v: usize, x: BigUint) -> (usize, BigUint) 
 
 /// Map a vertex `a` in layer `d` to its index x in [0, layer_size(v, d)).
 ///
-/// **WARNING**: Caller needs to make sure that d is a valid layer: 0 <= d <= v * (w-1)
+/// # Panics
+///
+/// Panics if `d` is not a valid layer. Valid layer means`0 <= d <= v * (w-1)`, 
+/// Panics if `a` is
+/// not on layer `d`.
 pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
     assert_eq!(a.len(), v);
     let mut x_curr = BigUint::zero();
@@ -241,7 +256,7 @@ mod tests {
     // Reference implementation for testing purposes
     fn prepare_layer_sizes_by_binom(w: usize) -> Vec<Vec<BigUint>> {
         /// Caches for binomial coefficients.
-        static BINOMS: Lazy<Mutex<Vec<Vec<BigUint>>>> = Lazy::new(|| Mutex::new(vec![]));
+        static BINOMS: LazyLock<Mutex<Vec<Vec<BigUint>>>> = LazyLock::new(|| Mutex::new(vec![]));
 
         /// Precompute binomials n choose k for n up to v + (w-1)v
         fn precompute_binoms(v: usize, w: usize) {
