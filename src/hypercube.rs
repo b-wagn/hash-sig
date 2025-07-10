@@ -222,7 +222,8 @@ pub fn hypercube_find_layer(w: usize, v: usize, x: BigUint) -> (usize, BigUint) 
 ///
 /// # Panics
 ///
-/// Panics if `d` is not a valid layer: `0 <= d <= v * (w-1)`, or if `a` is
+/// Panics if `d` is not a valid layer. Valid layer means`0 <= d <= v * (w-1)`, 
+/// Panics if `a` is
 /// not on layer `d`.
 pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
     assert_eq!(a.len(), v);
