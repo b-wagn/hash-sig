@@ -140,7 +140,10 @@ fn prepare_layer_info(w: usize) -> AllLayerInfoForBase {
 ///
 /// The vector that is returned has length v.
 ///
-/// **WARNING**: Caller needs to make sure that d is a valid layer: 0 <= d <= v * (w-1)
+/// # Panics
+///
+/// Panics if `d` is not a valid layer: `0 <= d <= v * (w-1)`, or if `x` is
+/// larger than hypercube's size: `x >= w^v`.
 pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
     let mut x_curr = x;
     let mut out = Vec::with_capacity(v);
@@ -176,7 +179,9 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
 
 /// Returns the total size of layers 0 to d (inclusive) in hypercube [0, w-1]^v.
 ///
-/// **WARNING**: Caller needs to make sure that d is a valid layer: 0 <= d <= v * (w-1)
+/// # Panics
+///
+/// Panics if `d` is not a valid layer: `0 <= d <= v * (w-1)`.
 pub fn hypercube_part_size(w: usize, v: usize, d: usize) -> BigUint {
     // With precomputed prefix sums, this is an efficient O(1) lookup.
     AllLayerData::new(w).prefix_sums(v)[d].clone()
@@ -187,8 +192,12 @@ pub fn hypercube_part_size(w: usize, v: usize, d: usize) -> BigUint {
 ///
 /// Returns d and x-L_<d
 ///
-/// **WARNING**: Caller needs to make sure that x < w^v
+/// # Panics
+///
+/// Panics if `x` is larger than hypercube's size: `x >= w^v`.
 pub fn hypercube_find_layer(w: usize, v: usize, x: BigUint) -> (usize, BigUint) {
+    assert!(&x < AllLayerData::new(w).prefix_sums(v).last().unwrap());
+
     let layer_data = AllLayerData::new(w);
     let prefix_sums = layer_data.prefix_sums(v);
 
@@ -211,7 +220,10 @@ pub fn hypercube_find_layer(w: usize, v: usize, x: BigUint) -> (usize, BigUint) 
 
 /// Map a vertex `a` in layer `d` to its index x in [0, layer_size(v, d)).
 ///
-/// **WARNING**: Caller needs to make sure that d is a valid layer: 0 <= d <= v * (w-1)
+/// # Panics
+///
+/// Panics if `d` is not a valid layer: `0 <= d <= v * (w-1)`, or if `a` is
+/// not on layer `d`.
 pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
     assert_eq!(a.len(), v);
     let mut x_curr = BigUint::zero();
