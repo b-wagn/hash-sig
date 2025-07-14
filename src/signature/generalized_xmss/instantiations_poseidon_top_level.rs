@@ -8,13 +8,12 @@ pub mod lifetime_2_to_the_18 {
             prf::shake_to_field::ShakePRFtoF, tweak_hash::poseidon::PoseidonTweakHash,
         },
     };
-
     const LOG_LIFETIME: usize = 18;
 
     const DIMENSION: usize = 40;
     const BASE: usize = 12;
-    const FINAL_LAYER: usize = 175;
-    const TARGET_SUM: usize = 269;
+    const FINAL_LAYER: usize = 160;
+    const TARGET_SUM: usize = 289;
 
     const PARAMETER_LEN: usize = 5;
     const TWEAK_LEN_FE: usize = 2;
@@ -24,10 +23,13 @@ pub mod lifetime_2_to_the_18 {
 
     const CAPACITY: usize = 9;
 
-    const POSEIDON_INVOCATIONS: usize = 2;
-    const POS_OUTPUT_LEN_FE: usize = POSEIDON_INVOCATIONS * 8;
+    const POS_OUTPUT_LEN_PER_INV_FE: usize = 15;
+    const POS_INVOCATIONS: usize = 1;
+    const POS_OUTPUT_LEN_FE: usize = POS_OUTPUT_LEN_PER_INV_FE * POS_INVOCATIONS;
 
     type MH = TopLevelPoseidonMessageHash<
+        POS_OUTPUT_LEN_PER_INV_FE,
+        POS_INVOCATIONS,
         POS_OUTPUT_LEN_FE,
         DIMENSION,
         BASE,
@@ -46,13 +48,13 @@ pub mod lifetime_2_to_the_18 {
 
     #[cfg(test)]
     mod test {
+
+        #[cfg(feature = "slow-tests")]
+        use crate::signature::test_templates::_test_signature_scheme_correctness;
         use crate::signature::{
             generalized_xmss::instantiations_poseidon_top_level::lifetime_2_to_the_18::SIGTopLevelTargetSumLifetime18Dim40Base12,
             SignatureScheme,
         };
-
-        #[cfg(feature = "slow-tests")]
-        use crate::signature::test_templates::_test_signature_scheme_correctness;
 
         #[test]
         pub fn test_internal_consistency() {
@@ -94,10 +96,13 @@ pub mod lifetime_2_to_the_26 {
 
     const CAPACITY: usize = 9;
 
-    const POSEIDON_INVOCATIONS: usize = 2;
-    const POS_OUTPUT_LEN_FE: usize = POSEIDON_INVOCATIONS * 8;
+    const POS_OUTPUT_LEN_PER_INV_FE: usize = 15;
+    const POS_INVOCATIONS: usize = 1;
+    const POS_OUTPUT_LEN_FE: usize = POS_OUTPUT_LEN_PER_INV_FE * POS_INVOCATIONS;
 
     type MH = TopLevelPoseidonMessageHash<
+        POS_OUTPUT_LEN_PER_INV_FE,
+        POS_INVOCATIONS,
         POS_OUTPUT_LEN_FE,
         DIMENSION,
         BASE,

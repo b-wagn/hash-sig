@@ -63,12 +63,22 @@ fn map_into_hypercube_part<
 /// Note: PARAMETER_LEN, RAND_LEN, TWEAK_LEN_FE, MSG_LEN_FE, and HASH_LEN_FE
 /// must be given in the unit "number of field elements".
 ///
-/// POS_OUTPUT_LEN_FE specifies how many field elements we get from Poseidon2,
-/// before we then take these field elements and decode them
-/// into an element of the top layers. This must be a multiple of 8.
+/// POS_OUTPUT_LEN_PER_INV_FE specifies how many field elements we get
+/// from Poseidon2 per invocation, and POS_INVOCATIONS specifies how
+/// many invocations of Poseidon2 we do. We then take these
+/// POS_INVOCATIONS * POS_OUTPUT_LEN_PER_INV_FE many field elements
+/// and decode them into an element of the top layers.
+///
+/// POS_OUTPUT_LEN_FE must be at most 15
+///
+/// POS_INVOCATIONS must be at most 2^8
+///
+/// POS_OUTPUT_LEN_FE must be equal to POS_INVOCATIONS * POS_OUTPUT_LEN_PER_INV_FE
 ///
 /// BASE must be at most 2^8
 pub struct TopLevelPoseidonMessageHash<
+    const POS_OUTPUT_LEN_PER_INV_FE: usize,
+    const POS_INVOCATIONS: usize,
     const POS_OUTPUT_LEN_FE: usize,
     const DIMENSION: usize,
     const BASE: usize,
@@ -80,6 +90,8 @@ pub struct TopLevelPoseidonMessageHash<
 >;
 
 impl<
+        const POS_OUTPUT_LEN_PER_INV_FE: usize,
+        const POS_INVOCATIONS: usize,
         const POS_OUTPUT_LEN_FE: usize,
         const DIMENSION: usize,
         const BASE: usize,
@@ -90,6 +102,8 @@ impl<
         const RAND_LEN: usize,
     > MessageHash
     for TopLevelPoseidonMessageHash<
+        POS_OUTPUT_LEN_PER_INV_FE,
+        POS_INVOCATIONS,
         POS_OUTPUT_LEN_FE,
         DIMENSION,
         BASE,
@@ -126,9 +140,8 @@ impl<
         let epoch_fe = encode_epoch::<TWEAK_LEN_FE>(epoch);
 
         // now, invoke Poseidon a few times, to get field elements
-        let iterations = POS_OUTPUT_LEN_FE / 8;
         let mut pos_outputs = [F::zero(); POS_OUTPUT_LEN_FE];
-        for i in 0..iterations {
+        for i in 0..POS_INVOCATIONS {
             // iteration domain separator
             let iteration_index = [F::from(i as u8)];
 
@@ -142,8 +155,10 @@ impl<
                 .copied()
                 .collect();
 
-            let iteration_pos_output: [F; 8] = poseidon_compress(&instance, &combined_input);
-            pos_outputs[i * 8..(i + 1) * 8].copy_from_slice(&iteration_pos_output);
+            let iteration_pos_output: [F; POS_OUTPUT_LEN_PER_INV_FE] =
+                poseidon_compress(&instance, &combined_input);
+            pos_outputs[i * POS_OUTPUT_LEN_PER_INV_FE..(i + 1) * POS_OUTPUT_LEN_PER_INV_FE]
+                .copy_from_slice(&iteration_pos_output);
         }
 
         // turn the field elements into an element in the part
@@ -153,17 +168,23 @@ impl<
 
     #[cfg(test)]
     fn internal_consistency_check() {
-        // POS_OUTPUT_LEN_FE must be a multiple of 8
+        // POS_OUTPUT_LEN_FE must be equal to POS_INVOCATIONS * POS_OUTPUT_LEN_PER_INV_FE
         assert!(
-            POS_OUTPUT_LEN_FE % 8 == 0,
-            "Top Level Poseidon Message Hash: POS_OUTPUT_LEN_FE must be a multiple of 8"
+            POS_OUTPUT_LEN_FE == POS_INVOCATIONS * POS_OUTPUT_LEN_PER_INV_FE,
+            "Top Level Poseidon Message Hash: POS_OUTPUT_LEN_FE must be equal to POS_INVOCATIONS * POS_OUTPUT_LEN_PER_INV_FE"
         );
 
-        // Number of iterations we require should fit in a field element
-        // For simplicity we require at most 2^8 iterations
+        // POS_OUTPUT_LEN_FE must be at most 15 (because capacity is 9)
         assert!(
-            (POS_OUTPUT_LEN_FE / 8) < 1 << 8,
-            "Top Level Poseidon Message Hash: POS_OUTPUT_LEN_FE / 8 must be less then 2^8 "
+            POS_OUTPUT_LEN_PER_INV_FE <= 15,
+            "Top Level Poseidon Message Hash: POS_OUTPUT_LEN_PER_INV_FE must be at most 15"
+        );
+
+        // Number of invocations we require should fit in a field element
+        // For simplicity we require at most 2^8 invocations, which is more than enough
+        assert!(
+            POS_INVOCATIONS <= 1 << 8,
+            "Top Level Poseidon Message Hash: POS_INVOCATIONS must be at most 2^8"
         );
 
         // FINAL_LAYER must be a valid layer
@@ -224,7 +245,7 @@ mod tests {
         const DIMENSION: usize = 40;
         const FINAL_LAYER: usize = 175;
 
-        type MH = TopLevelPoseidonMessageHash<48, DIMENSION, BASE, FINAL_LAYER, 3, 9, 4, 4>;
+        type MH = TopLevelPoseidonMessageHash<8, 6, 48, DIMENSION, BASE, FINAL_LAYER, 3, 9, 4, 4>;
 
         let mut rng = thread_rng();
 
