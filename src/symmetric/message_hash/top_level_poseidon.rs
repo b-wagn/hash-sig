@@ -249,10 +249,7 @@ mod tests {
 
         let mut rng = thread_rng();
 
-        let mut parameter = [F::one(); 4];
-        for p in &mut parameter {
-            *p = F::rand(&mut rng);
-        }
+let parameter = std::array::from_fn(|_| F::rand(&mut rng));
 
         let mut message = [0u8; MESSAGE_LENGTH];
         rng.fill(&mut message);
