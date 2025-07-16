@@ -238,7 +238,6 @@ impl<
 mod tests {
     use super::*;
     use rand::{thread_rng, Rng};
-    use zkhash::ark_ff::One;
     use zkhash::ark_ff::UniformRand;
 
     use crate::symmetric::message_hash::{
@@ -255,7 +254,7 @@ mod tests {
 
         let mut rng = thread_rng();
 
-let parameter = std::array::from_fn(|_| F::rand(&mut rng));
+        let parameter = std::array::from_fn(|_| F::rand(&mut rng));
 
         let mut message = [0u8; MESSAGE_LENGTH];
         rng.fill(&mut message);
