@@ -193,7 +193,7 @@ where
         let hashes = (0..num_chains)
             .into_par_iter()
             .map(|chain_index| {
-                // get back the start of the chain from the PRF
+                // get back to the start of the chain from the PRF
                 let start = PRF::apply(&sk.prf_key, epoch, chain_index as u64).into();
                 // now walk the chain for a number of steps determined by the current chunk of x
                 let steps = x[chain_index] as usize;
