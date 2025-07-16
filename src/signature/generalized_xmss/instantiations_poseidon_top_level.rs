@@ -48,7 +48,6 @@ pub mod lifetime_2_to_the_18 {
 
     #[cfg(test)]
     mod test {
-
         #[cfg(feature = "slow-tests")]
         use crate::signature::test_templates::_test_signature_scheme_correctness;
         use crate::signature::{
