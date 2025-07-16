@@ -15,8 +15,8 @@ impl<TH> HashTree<TH>
 where
     TH: TweakableHash,
 {
-    /// Function to compute a hash-tree given the leafs hashes as input.
-    /// The number of leafs hashes must be a power of two.
+    /// Function to compute a hash-tree given the leaf hashes as input.
+    /// The number of leaf hashes must be a power of two.
     pub fn new(parameter: &TH::Parameter, leafs_hashes: Vec<TH::Domain>) -> Self {
         // check that number of leafs is a power of two
         assert!(
