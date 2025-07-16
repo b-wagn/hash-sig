@@ -51,31 +51,37 @@ fn map_into_hypercube_part<
     map_to_vertex(BASE, DIMENSION, layer, offset)
 }
 
-/// A message hash implemented using Poseidon2, mapping into the top layers.
-/// That is, we look at the hypercube {0,...,BASE-1}^DIMENSION and partition
-/// it into layers:
-///      layer 0 is {(BASE-1,...,BASE-1)}
-///      layer (BASE-1)*DIMENSION is {(0,...,0)}
-///      layer T contains all (x_1,...,x_DIMENSION)
-///             with (BASE-1)*DIMENSION - sum_i x_i = T
-/// Then, this message hash maps into layers 0 to FINAL_LAYER (inclusive)
+/// A message hash implemented using Poseidon2 that maps messages into the top layers
+/// of a hypercube structure.
 ///
-/// Note: PARAMETER_LEN, RAND_LEN, TWEAK_LEN_FE, MSG_LEN_FE, and HASH_LEN_FE
-/// must be given in the unit "number of field elements".
+/// Specifically, consider the hypercube {0, ..., BASE-1}^DIMENSION, partitioned into layers as follows:
 ///
-/// POS_OUTPUT_LEN_PER_INV_FE specifies how many field elements we get
-/// from Poseidon2 per invocation, and POS_INVOCATIONS specifies how
-/// many invocations of Poseidon2 we do. We then take these
-/// POS_INVOCATIONS * POS_OUTPUT_LEN_PER_INV_FE many field elements
-/// and decode them into an element of the top layers.
+/// - **Layer 0**: {(BASE-1, ..., BASE-1)}
+/// - **Layer (BASE-1) * DIMENSION**: {(0, ..., 0)}
+/// - **Layer T**: all points (x_1, ..., x_DIMENSION) such that
+///   (BASE-1) * DIMENSION - sum_i x_i = T
 ///
-/// POS_OUTPUT_LEN_FE must be at most 15
+/// This message hash maps into layers 0 to FINAL_LAYER (inclusive).
 ///
-/// POS_INVOCATIONS must be at most 2^8
+/// # Notes
 ///
-/// POS_OUTPUT_LEN_FE must be equal to POS_INVOCATIONS * POS_OUTPUT_LEN_PER_INV_FE
+/// - `PARAMETER_LEN`, `RAND_LEN`, `TWEAK_LEN_FE`, `MSG_LEN_FE`, and `HASH_LEN_FE`
+///   are specified in **number of field elements**.
 ///
-/// BASE must be at most 2^8
+/// - `POS_OUTPUT_LEN_PER_INV_FE` specifies how many field elements we obtain
+///   from each Poseidon2 invocation.
+///
+/// - `POS_INVOCATIONS` is the number of Poseidon2 invocations performed.
+///
+/// We then take the resulting `POS_INVOCATIONS * POS_OUTPUT_LEN_PER_INV_FE`
+/// field elements and decode them into an element of the top layers.
+///
+/// # Constraints
+///
+/// - `POS_OUTPUT_LEN_FE` must be at most 15.
+/// - `POS_INVOCATIONS` must be at most 2^8.
+/// - `POS_OUTPUT_LEN_FE` must be equal to `POS_INVOCATIONS * POS_OUTPUT_LEN_PER_INV_FE`.
+/// - `BASE` must be at most 2^8.
 pub struct TopLevelPoseidonMessageHash<
     const POS_OUTPUT_LEN_PER_INV_FE: usize,
     const POS_INVOCATIONS: usize,
