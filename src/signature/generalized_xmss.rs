@@ -54,6 +54,8 @@ pub struct GeneralizedXMSSSecretKey<PRF: Pseudorandom, TH: TweakableHash> {
     prf_key: PRF::Key,
     tree: HashTree<TH>,
     parameter: TH::Parameter,
+    activation_epoch: usize,
+    num_active_epochs: usize,
 }
 
 impl<PRF: Pseudorandom, IE: IncomparableEncoding, TH: TweakableHash, const LOG_LIFETIME: usize>
@@ -70,7 +72,17 @@ where
 
     const LIFETIME: u64 = 1 << LOG_LIFETIME;
 
-    fn gen<R: Rng>(rng: &mut R) -> (Self::PublicKey, Self::SecretKey) {
+    fn gen<R: Rng>(
+        rng: &mut R,
+        activation_epoch: usize,
+        num_active_epochs: usize,
+    ) -> (Self::PublicKey, Self::SecretKey) {
+        // checks for `activation_epoch` and `num_active_epochs`
+        assert!(
+            activation_epoch + num_active_epochs <= Self::LIFETIME as usize,
+            "Key gen: `activation_epoch` and `num_active_epochs` are invalid for this lifetime"
+        );
+
         // Note: this implementation first generates all one-time sk's
         // and one-time pk's and then computes a Merkle tree in one go.
         // For a large lifetime (e.g., L = 2^32), this approach is not
@@ -99,7 +111,8 @@ where
         let chain_length = IE::BASE;
 
         // parallelize the chain ends hash computation for each epoch
-        let chain_ends_hashes = (0..Self::LIFETIME)
+        let activation_range = activation_epoch..activation_epoch + num_active_epochs;
+        let chain_ends_hashes = activation_range
             .into_par_iter()
             .map(|epoch| {
                 // each epoch has a number of chains
@@ -126,7 +139,13 @@ where
             .collect::<Vec<_>>();
 
         // now build a Merkle tree on top of the hashes of chain ends / public keys
-        let tree = HashTree::new(&parameter, chain_ends_hashes);
+        let tree = HashTree::new(
+            rng,
+            LOG_LIFETIME,
+            activation_epoch,
+            &parameter,
+            chain_ends_hashes,
+        );
         let root = tree.root();
 
         // assemble public key and secret key
@@ -135,6 +154,8 @@ where
             prf_key,
             tree,
             parameter,
+            activation_epoch,
+            num_active_epochs,
         };
 
         (pk, sk)
@@ -146,6 +167,13 @@ where
         epoch: u32,
         message: &[u8; MESSAGE_LENGTH],
     ) -> Result<Self::Signature, SigningError> {
+        // check that epoch is indeed a valid epoch in the activation range
+        let activation_range = sk.activation_epoch..sk.activation_epoch + sk.num_active_epochs;
+        assert!(
+            activation_range.contains(&(epoch as usize)),
+            "Signing: key not active during this epoch"
+        );
+
         // first component of the signature is the Merkle path that
         // opens the one-time pk for that epoch, where the one-time pk
         // will be recomputed by the verifier from the signature.
@@ -324,11 +352,11 @@ mod tests {
 
         SIG::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(289);
-        _test_signature_scheme_correctness::<SIG>(2);
-        _test_signature_scheme_correctness::<SIG>(19);
-        _test_signature_scheme_correctness::<SIG>(0);
-        _test_signature_scheme_correctness::<SIG>(11);
+        _test_signature_scheme_correctness::<SIG>(289, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(2, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(19, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(0, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(11, 0, SIG::LIFETIME as usize);
     }
 
     #[test]
@@ -346,10 +374,15 @@ mod tests {
 
         SIG::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(2);
-        _test_signature_scheme_correctness::<SIG>(19);
-        _test_signature_scheme_correctness::<SIG>(0);
-        _test_signature_scheme_correctness::<SIG>(11);
+        _test_signature_scheme_correctness::<SIG>(2, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(19, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(0, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(11, 0, SIG::LIFETIME as usize);
+
+        _test_signature_scheme_correctness::<SIG>(12, 10, (1 << 5) - 10);
+        _test_signature_scheme_correctness::<SIG>(19, 4, 20);
+        _test_signature_scheme_correctness::<SIG>(16, 16, 4);
+        _test_signature_scheme_correctness::<SIG>(11, 1, 29);
     }
 
     #[test]
@@ -368,11 +401,11 @@ mod tests {
 
         SIG::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(13);
-        _test_signature_scheme_correctness::<SIG>(9);
-        _test_signature_scheme_correctness::<SIG>(21);
-        _test_signature_scheme_correctness::<SIG>(0);
-        _test_signature_scheme_correctness::<SIG>(31);
+        _test_signature_scheme_correctness::<SIG>(13, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(9, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(21, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(0, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(31, 0, SIG::LIFETIME as usize);
     }
 
     #[test]
@@ -391,10 +424,10 @@ mod tests {
 
         SIG::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(2);
-        _test_signature_scheme_correctness::<SIG>(19);
-        _test_signature_scheme_correctness::<SIG>(0);
-        _test_signature_scheme_correctness::<SIG>(11);
+        _test_signature_scheme_correctness::<SIG>(2, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(19, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(0, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(11, 0, SIG::LIFETIME as usize);
     }
 
     #[test]
@@ -412,8 +445,8 @@ mod tests {
 
         SIG::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(0);
-        _test_signature_scheme_correctness::<SIG>(11);
+        _test_signature_scheme_correctness::<SIG>(0, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(11, 0, SIG::LIFETIME as usize);
     }
 
     #[test]
@@ -431,7 +464,7 @@ mod tests {
 
         SIG::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(2);
-        _test_signature_scheme_correctness::<SIG>(19);
+        _test_signature_scheme_correctness::<SIG>(2, 0, SIG::LIFETIME as usize);
+        _test_signature_scheme_correctness::<SIG>(19, 0, SIG::LIFETIME as usize);
     }
 }

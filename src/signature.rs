@@ -22,7 +22,17 @@ pub trait SignatureScheme {
     const LIFETIME: u64;
 
     /// Generates a new key pair, returning the public and private keys.
-    fn gen<R: Rng>(rng: &mut R) -> (Self::PublicKey, Self::SecretKey);
+    ///
+    /// The key can sign with respect to all epochs in the range
+    /// `activation_epoch..activation_epoch+num_active_epochs`.
+    ///
+    /// The caller must ensure that this is a valid range, i.e., that
+    /// `activation_epoch+num_active_epochs <= LIFETIME`.
+    fn gen<R: Rng>(
+        rng: &mut R,
+        activation_epoch: usize,
+        num_active_epochs: usize,
+    ) -> (Self::PublicKey, Self::SecretKey);
 
     /// Signs a message and returns the signature.
     /// The signature is with respect to a given epoch.
@@ -58,11 +68,15 @@ mod test_templates {
     /// Generic test for any implementation of the `SignatureScheme` trait.
     /// Tests correctness, i.e., that honest key gen, honest signing, implies
     /// that the verifier accepts the signature. A random message is used.
-    pub fn _test_signature_scheme_correctness<T: SignatureScheme>(epoch: u32) {
+    pub fn _test_signature_scheme_correctness<T: SignatureScheme>(
+        epoch: u32,
+        activation_epoch: usize,
+        num_active_epochs: usize,
+    ) {
         let mut rng = thread_rng();
 
         // Generate a key pair
-        let (pk, sk) = T::gen(&mut rng);
+        let (pk, sk) = T::gen(&mut rng, activation_epoch, num_active_epochs);
 
         // Sample random test message
         let mut message = [0u8; MESSAGE_LENGTH];
@@ -79,7 +93,7 @@ mod test_templates {
             epoch
         );
 
-        // Verify the signature.
+        // Verify the signature
         let signature = signature.unwrap();
         let is_valid = T::verify(&pk, epoch, &message, &signature);
         assert!(

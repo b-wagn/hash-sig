@@ -29,13 +29,13 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
     group.bench_function(format!("- gen"), |b| {
         b.iter(|| {
             // Benchmark key generation
-            let _ = S::gen(black_box(&mut rng));
+            let _ = S::gen(black_box(&mut rng), 0, S::LIFETIME as usize);
         });
     });
 
     group.sample_size(100);
 
-    let (pk, sk) = S::gen(&mut rng);
+    let (pk, sk) = S::gen(&mut rng, 0, S::LIFETIME as usize);
 
     group.bench_function(format!("- sign"), |b| {
         b.iter(|| {
