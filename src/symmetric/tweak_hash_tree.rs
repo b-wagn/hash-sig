@@ -38,13 +38,14 @@ pub struct HashTreeOpening<TH: TweakableHash> {
 }
 
 /// Helper function. Computes a padded layer from the meaningful entries of the layer.
-/// These meaningful entries are assumed to range from start_index to end_index (both inclusive).
+/// These meaningful entries are assumed to range from start_index to start_index + nodes.len() - 1 (both inclusive).
 fn get_padded_layer<R: Rng, TH: TweakableHash>(
     rng: &mut R,
     nodes: Vec<TH::Domain>,
     start_index: usize,
-    end_index: usize,
 ) -> HashTreeLayer<TH> {
+    let end_index = start_index + nodes.len() - 1;
+
     let mut nodes_with_padding = vec![];
 
     // padding in front if start_index is not even
@@ -104,8 +105,7 @@ where
         let mut layers: Vec<HashTreeLayer<TH>> = Vec::with_capacity(depth + 1);
 
         // start with the leaf layer, padded accordingly
-        let end_index = start_index + leafs_hashes.len() - 1;
-        layers.push(get_padded_layer(rng, leafs_hashes, start_index, end_index));
+        layers.push(get_padded_layer(rng, leafs_hashes, start_index));
 
         // now, build the tree layer by layer
         for level in 0..depth {
@@ -130,11 +130,8 @@ where
                 })
                 .collect();
 
-            // assert!(layers[level].start_index % 2 == 0);
-            // assert!((layers[level].start_index + layers[level].nodes.len() - 1) % 2 == 1);
             let start_index = layers[level].start_index / 2;
-            let end_index = (layers[level].start_index + layers[level].nodes.len()) / 2 - 1;
-            layers.push(get_padded_layer(rng, parents, start_index, end_index));
+            layers.push(get_padded_layer(rng, parents, start_index));
         }
         HashTree { depth, layers }
     }
