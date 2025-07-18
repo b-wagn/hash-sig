@@ -72,7 +72,7 @@ impl<TH> HashTree<TH>
 where
     TH: TweakableHash,
 {
-    /// Function to compute a hash-tree given the leafs hashes as input.
+    /// Function to compute a hash-tree given the leaf hashes as input.
     /// The tree will have the given depth, which bounds the number of leafs.
     /// It can have at most `1 << depth` many leafs. It has `depth + 1` layers.
     ///
