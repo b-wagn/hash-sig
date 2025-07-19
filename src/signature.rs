@@ -61,8 +61,6 @@ pub mod generalized_xmss;
 
 #[cfg(test)]
 mod test_templates {
-    use rand::thread_rng;
-
     use super::*;
 
     /// Generic test for any implementation of the `SignatureScheme` trait.
@@ -73,14 +71,13 @@ mod test_templates {
         activation_epoch: usize,
         num_active_epochs: usize,
     ) {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         // Generate a key pair
         let (pk, sk) = T::gen(&mut rng, activation_epoch, num_active_epochs);
 
         // Sample random test message
-        let mut message = [0u8; MESSAGE_LENGTH];
-        rng.fill(&mut message);
+        let message = rng.random();
 
         // Sign the message
         let signature = T::sign(&mut rng, &sk, epoch, &message);

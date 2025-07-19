@@ -15,7 +15,7 @@ impl<const OUTPUT_LENGTH: usize> Pseudorandom for ShaPRF<OUTPUT_LENGTH> {
     type Output = [u8; OUTPUT_LENGTH];
 
     fn gen<R: rand::Rng>(rng: &mut R) -> Self::Key {
-        std::array::from_fn(|_| rng.gen())
+        rng.random()
     }
 
     fn apply(key: &Self::Key, epoch: u32, index: u64) -> Self::Output {
@@ -50,7 +50,6 @@ impl<const OUTPUT_LENGTH: usize> Pseudorandom for ShaPRF<OUTPUT_LENGTH> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::thread_rng;
 
     #[test]
     fn test_sha_prf_key_not_all_same() {
@@ -58,7 +57,7 @@ mod tests {
         const OUTPUT_LEN: usize = 16;
         type PRF = ShaPRF<OUTPUT_LEN>;
 
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         let mut all_same_count = 0;
 
         for _ in 0..K {

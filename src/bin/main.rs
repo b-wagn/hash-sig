@@ -17,7 +17,6 @@ use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to
 use hashsig::signature::SignatureScheme;
 use rand::rngs::ThreadRng;
 use rand::Rng;
-use rand::thread_rng;
 use std::time::Instant;
 
 // Function to measure execution time
@@ -32,7 +31,7 @@ fn measure_time<T: SignatureScheme, R: Rng>(description: &str, rng: &mut R) {
 
 // Main function to run the program
 fn main() {
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
 
     // Lifetime 2^18 - Winternitz
     measure_time::<SIGWinternitzLifetime18W1, ThreadRng>(

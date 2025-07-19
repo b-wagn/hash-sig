@@ -139,13 +139,13 @@ pub type ShaTweak192192 = ShaTweakHash<24, 24>;
 mod tests {
     use std::collections::HashMap;
 
-    use rand::{thread_rng, Rng};
+    use rand::Rng;
 
     use super::*;
 
     #[test]
     fn test_apply_128_128() {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         // make sure parameters make sense
         ShaTweak128128::internal_consistency_check();
@@ -167,7 +167,7 @@ mod tests {
 
     #[test]
     fn test_apply_128_192() {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         // make sure parameters make sense
         ShaTweak128192::internal_consistency_check();
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn test_apply_192_192() {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         // make sure parameters make sense
         ShaTweak192192::internal_consistency_check();
@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     fn test_tree_tweak_injective() {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         // basic test to check that tree tweak maps from
         // parameters to byte array injectively
@@ -219,8 +219,8 @@ mod tests {
         // random inputs
         let mut map = HashMap::new();
         for _ in 0..100_000 {
-            let level = rng.gen();
-            let pos_in_level = rng.gen();
+            let level = rng.random();
+            let pos_in_level = rng.random();
             let tweak_encoding = ShaTweak::TreeTweak {
                 level,
                 pos_in_level,
@@ -245,9 +245,9 @@ mod tests {
 
         // inputs with common level
         let mut map = HashMap::new();
-        let level = rng.gen();
+        let level = rng.random();
         for _ in 0..10_000 {
-            let pos_in_level = rng.gen();
+            let pos_in_level = rng.random();
             let tweak_encoding = ShaTweak::TreeTweak {
                 level,
                 pos_in_level,
@@ -265,9 +265,9 @@ mod tests {
 
         // inputs with common pos_in_level
         let mut map = HashMap::new();
-        let pos_in_level = rng.gen();
+        let pos_in_level = rng.random();
         for _ in 0..10_000 {
-            let level = rng.gen();
+            let level = rng.random();
             let tweak_encoding = ShaTweak::TreeTweak {
                 level,
                 pos_in_level,
@@ -286,7 +286,7 @@ mod tests {
 
     #[test]
     fn test_chain_tweak_injective() {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         // basic test to check that chain tweak maps from
         // parameters to byte array injectively
@@ -294,9 +294,9 @@ mod tests {
         // random inputs
         let mut map = HashMap::new();
         for _ in 0..100_000 {
-            let epoch = rng.gen();
-            let chain_index = rng.gen();
-            let pos_in_chain = rng.gen();
+            let epoch = rng.random();
+            let chain_index = rng.random();
+            let pos_in_chain = rng.random();
 
             let input = (epoch, chain_index, pos_in_chain);
 
@@ -317,10 +317,10 @@ mod tests {
 
         // inputs with fixed epoch
         let mut map = HashMap::new();
-        let epoch = rng.gen();
+        let epoch = rng.random();
         for _ in 0..10_000 {
-            let chain_index = rng.gen();
-            let pos_in_chain = rng.gen();
+            let chain_index = rng.random();
+            let pos_in_chain = rng.random();
 
             let input = (chain_index, pos_in_chain);
 
@@ -341,10 +341,10 @@ mod tests {
 
         // inputs with fixed chain_index
         let mut map = HashMap::new();
-        let chain_index = rng.gen();
+        let chain_index = rng.random();
         for _ in 0..10_000 {
-            let epoch = rng.gen();
-            let pos_in_chain = rng.gen();
+            let epoch = rng.random();
+            let pos_in_chain = rng.random();
 
             let input = (epoch, pos_in_chain);
 
@@ -365,10 +365,10 @@ mod tests {
 
         // inputs with fixed pos_in_chain
         let mut map = HashMap::new();
-        let pos_in_chain = rng.gen();
+        let pos_in_chain = rng.random();
         for _ in 0..10_000 {
-            let epoch = rng.gen();
-            let chain_index = rng.gen();
+            let epoch = rng.random();
+            let chain_index = rng.random();
 
             let input = (epoch, chain_index);
 

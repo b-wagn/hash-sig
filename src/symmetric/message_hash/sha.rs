@@ -34,7 +34,7 @@ impl<
     const BASE: usize = 1 << CHUNK_SIZE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
-        std::array::from_fn(|_| rng.gen())
+        rng.random()
     }
 
     fn apply(
@@ -104,21 +104,17 @@ pub type ShaMessageHash192x3 = ShaMessageHash<24, 24, 48, 4>;
 
 #[cfg(test)]
 mod tests {
-    use rand::{thread_rng, Rng};
-
-    use crate::MESSAGE_LENGTH;
+    use rand::Rng;
 
     use super::*;
 
     #[test]
     fn test_apply_128x3() {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
-        let mut parameter = [0u8; 16];
-        rng.fill(&mut parameter);
+        let parameter = rng.random();
 
-        let mut message = [0u8; MESSAGE_LENGTH];
-        rng.fill(&mut message);
+        let message = rng.random();
 
         let epoch = 13;
         let randomness = ShaMessageHash128x3::rand(&mut rng);
@@ -129,13 +125,11 @@ mod tests {
 
     #[test]
     fn test_apply_192x3() {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
-        let mut parameter = [0u8; 24];
-        rng.fill(&mut parameter);
+        let parameter = rng.random();
 
-        let mut message = [0u8; MESSAGE_LENGTH];
-        rng.fill(&mut message);
+        let message = rng.random();
 
         let epoch = 13;
         let randomness = ShaMessageHash192x3::rand(&mut rng);
@@ -147,7 +141,7 @@ mod tests {
     #[test]
     fn test_randomness_is_not_all_same() {
         const TRIALS: usize = 10;
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         let mut identical_count = 0;
 

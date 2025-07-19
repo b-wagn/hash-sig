@@ -81,13 +81,12 @@ mod tests {
 
     use super::*;
     use proptest::prelude::*;
-    use rand::thread_rng;
 
     type TestTH = ShaTweak128192;
 
     #[test]
     fn test_chain_associative() {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         // we test that first walking k steps, and then walking the remaining steps
         // is the same as directly walking all steps.
@@ -123,7 +122,7 @@ mod tests {
 
     #[test]
     fn test_chain_associative_max_value() {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         // we test that first walking k steps, and then walking the remaining steps
         // is the same as directly walking all steps.
@@ -170,7 +169,7 @@ mod tests {
             total_steps in 0usize..16,
         ) {
             // Random number generator for generating parameters and start point
-            let mut rng = thread_rng();
+            let mut rng = rand::rng();
 
             // Generate a random public parameter for the tweakable hash function
             let parameter = TestTH::rand_parameter(&mut rng);

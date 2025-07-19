@@ -248,7 +248,6 @@ pub fn hash_tree_verify<TH: TweakableHash>(
 mod tests {
 
     use proptest::prelude::*;
-    use rand::thread_rng;
 
     use crate::symmetric::tweak_hash::sha::ShaTweak128192;
 
@@ -266,7 +265,7 @@ mod tests {
         start_index: usize,
         leaf_len: usize,
     ) {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         // sample a random parameter and leafs
         let parameter = TestTH::rand_parameter(&mut rng);
 

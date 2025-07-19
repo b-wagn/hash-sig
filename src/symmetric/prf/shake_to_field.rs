@@ -1,14 +1,15 @@
 use super::Pseudorandom;
+use p3_baby_bear::BabyBear;
+use p3_field::PrimeCharacteristicRing;
+use p3_field::PrimeField64;
 use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
     Shake128,
 };
 
 use num_bigint::BigUint;
-use zkhash::ark_ff::MontConfig;
-use zkhash::fields::babybear::{FpBabyBear, FqConfig};
 
-type F = FpBabyBear;
+type F = BabyBear;
 
 // Number of pseudorandom bytes to generate one pseudorandom field element
 const PRF_BYTES_PER_FE: usize = 8;
@@ -28,7 +29,7 @@ impl<const OUTPUT_LENGTH_FE: usize> Pseudorandom for ShakePRFtoF<OUTPUT_LENGTH_F
     type Output = [F; OUTPUT_LENGTH_FE];
 
     fn gen<R: rand::Rng>(rng: &mut R) -> Self::Key {
-        std::array::from_fn(|_| rng.gen())
+        rng.random()
     }
 
     fn apply(key: &Self::Key, epoch: u32, index: u64) -> Self::Output {
@@ -61,8 +62,8 @@ impl<const OUTPUT_LENGTH_FE: usize> Pseudorandom for ShakePRFtoF<OUTPUT_LENGTH_F
             let chunk_start = i * PRF_BYTES_PER_FE;
             let chunk_end = chunk_start + PRF_BYTES_PER_FE;
             let integer_value = BigUint::from_bytes_be(&prf_output[chunk_start..chunk_end])
-                % BigUint::from(FqConfig::MODULUS);
-            F::from(integer_value)
+                % BigUint::from(F::ORDER_U64);
+            F::from_u64(integer_value.try_into().unwrap())
         })
     }
 
@@ -78,13 +79,11 @@ mod tests {
 
     #[test]
     fn test_shake_to_field_prf_key_not_all_same() {
-        use rand::thread_rng;
-
         const K: usize = 10;
         const OUTPUT_LEN: usize = 4;
         type PRF = ShakePRFtoF<OUTPUT_LEN>;
 
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         let mut all_same_count = 0;
 
         for _ in 0..K {

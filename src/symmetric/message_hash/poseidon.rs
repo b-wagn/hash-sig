@@ -1,18 +1,16 @@
 use num_bigint::BigUint;
-use zkhash::ark_ff::MontConfig;
-use zkhash::ark_ff::PrimeField;
-use zkhash::ark_ff::UniformRand;
-use zkhash::fields::babybear::FpBabyBear;
-use zkhash::fields::babybear::FqConfig;
-use zkhash::poseidon2::poseidon2::Poseidon2;
-use zkhash::poseidon2::poseidon2_instance_babybear::POSEIDON2_BABYBEAR_24_PARAMS;
+use p3_baby_bear::default_babybear_poseidon2_24;
+use p3_baby_bear::BabyBear;
+use p3_field::PrimeCharacteristicRing;
+use p3_field::PrimeField;
+use p3_field::PrimeField64;
 
 use super::MessageHash;
 use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
 use crate::MESSAGE_LENGTH;
 use crate::TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
 
-type F = FpBabyBear;
+type F = BabyBear;
 
 /// Function to encode a message as an array of field elements
 pub(crate) fn encode_message<const MSG_LEN_FE: usize>(
@@ -21,14 +19,11 @@ pub(crate) fn encode_message<const MSG_LEN_FE: usize>(
     // Interpret message as a little-endian integer
     let mut acc = BigUint::from_bytes_le(message);
 
-    // Get the modulus as BigUint once
-    let p = BigUint::from(FqConfig::MODULUS);
-
     // Perform base-p decomposition
     std::array::from_fn(|_| {
-        let digit = &acc % &p;
-        acc /= &p;
-        F::from(digit)
+        let digit = &acc % F::ORDER_U64;
+        acc /= F::ORDER_U64;
+        F::from_u64(digit.try_into().unwrap())
     })
 }
 
@@ -37,16 +32,11 @@ pub(crate) fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_L
     // Combine epoch and domain separator
     let mut acc = ((epoch as u64) << 8) | (TWEAK_SEPARATOR_FOR_MESSAGE_HASH as u64);
 
-    // Get the modulus
-    //
-    // This is fine to take only the first limb as we are using prime fields with <= 64 bits
-    let p = FqConfig::MODULUS.0[0];
-
     // Convert into field elements in base-p
     std::array::from_fn(|_| {
-        let digit = acc % p;
-        acc /= p;
-        F::from(digit)
+        let digit = acc % F::ORDER_U64;
+        acc /= F::ORDER_U64;
+        F::from_u64(digit)
     })
 }
 
@@ -58,10 +48,9 @@ fn decode_to_chunks<const DIMENSION: usize, const BASE: usize, const HASH_LEN_FE
     field_elements: &[F; HASH_LEN_FE],
 ) -> [u8; DIMENSION] {
     // Combine field elements into one big integer
-    let p = BigUint::from(FqConfig::MODULUS);
     let mut acc = BigUint::ZERO;
     for fe in field_elements {
-        acc = &acc * &p + BigUint::from(fe.into_bigint());
+        acc = &acc * F::ORDER_U64 + fe.as_canonical_biguint();
     }
 
     // Convert to base-BASE
@@ -119,7 +108,7 @@ impl<
     const BASE: usize = BASE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
-        std::array::from_fn(|_| F::rand(rng))
+        rng.random()
     }
 
     fn apply(
@@ -128,22 +117,23 @@ impl<
         randomness: &Self::Randomness,
         message: &[u8; MESSAGE_LENGTH],
     ) -> Vec<u8> {
-        // We need a Poseidon instance
-        let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
+        // Get the default, pre-configured Poseidon2 instance from Plonky3.
+        let perm = default_babybear_poseidon2_24();
 
         // first, encode the message and the epoch as field elements
         let message_fe = encode_message::<MSG_LEN_FE>(message);
         let epoch_fe = encode_epoch::<TWEAK_LEN_FE>(epoch);
 
         // now, we hash randomness, parameters, epoch, message using PoseidonCompress
-        let combined_input: Vec<F> = randomness
+        let combined_input_vec: Vec<F> = randomness
             .iter()
             .chain(parameter.iter())
             .chain(epoch_fe.iter())
             .chain(message_fe.iter())
             .copied()
             .collect();
-        let hash_fe = poseidon_compress(&instance, &combined_input);
+
+        let hash_fe = poseidon_compress::<_, 24, HASH_LEN_FE>(&perm, &combined_input_vec);
 
         // decode field elements into chunks and return them
         decode_to_chunks::<DIMENSION, BASE, HASH_LEN_FE>(&hash_fe).to_vec()
@@ -161,12 +151,6 @@ impl<
         );
         assert!(HASH_LEN_FE <= 24, "Poseidon of width 24 is not enough");
 
-        // Modulus check
-        assert!(
-            BigUint::from(FqConfig::MODULUS) < BigUint::from(u64::MAX),
-            "The prime field used is too large"
-        );
-
         // Base and dimension check
         assert!(
             Self::BASE <= 1 << 8,
@@ -178,12 +162,7 @@ impl<
         );
 
         // how many bits can be represented by one field element
-        let bits_per_fe = f64::floor(f64::log2(
-            BigUint::from(FqConfig::MODULUS)
-                .to_string()
-                .parse()
-                .unwrap(),
-        ));
+        let bits_per_fe = f64::floor(f64::log2(F::ORDER_U64 as f64));
 
         // Check that we have enough bits to encode message
         let message_fe_bits = bits_per_fe * f64::from(MSG_LEN_FE as u32);
@@ -217,26 +196,18 @@ pub type PoseidonMessageHashW1 = PoseidonMessageHash<5, 5, 5, 163, 2, 2, 9>;
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use super::*;
-    use rand::{thread_rng, Rng};
-    use zkhash::ark_ff::Field;
-    use zkhash::ark_ff::One;
-    use zkhash::ark_ff::UniformRand;
-    use zkhash::ark_ff::Zero;
+    use num_traits::Zero;
+    use rand::Rng;
+    use std::collections::HashMap;
 
     #[test]
     fn test_apply() {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
-        let mut parameter = [F::one(); 4];
-        for p in &mut parameter {
-            *p = F::rand(&mut rng);
-        }
+        let parameter = rng.random();
 
-        let mut message = [0u8; MESSAGE_LENGTH];
-        rng.fill(&mut message);
+        let message = rng.random();
 
         let epoch = 13;
         let randomness = PoseidonMessageHash445::rand(&mut rng);
@@ -247,15 +218,11 @@ mod tests {
 
     #[test]
     fn test_apply_w1() {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
-        let mut parameter = [F::one(); 5];
-        for p in &mut parameter {
-            *p = F::rand(&mut rng);
-        }
+        let parameter = rng.random();
 
-        let mut message = [0u8; MESSAGE_LENGTH];
-        rng.fill(&mut message);
+        let message = rng.random();
 
         let epoch = 13;
         let randomness = PoseidonMessageHashW1::rand(&mut rng);
@@ -268,7 +235,7 @@ mod tests {
     fn test_rand_not_all_same() {
         // Setup a number of trials
         const K: usize = 10;
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         let mut all_same_count = 0;
 
         for _ in 0..K {
@@ -295,17 +262,17 @@ mod tests {
         let sep = TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
 
         // Compute: (epoch << 8) + sep
-        let epoch_bigint = (BigUint::from(epoch) << 8) + sep;
+        let epoch_bigint: BigUint = (BigUint::from(epoch) << 8) + sep;
 
         // Use the field modulus
-        let p = BigUint::from(FqConfig::MODULUS);
+        let p = BigUint::from(F::ORDER_U64);
 
         // Compute field elements in base-p
         let expected = [
-            F::from(&epoch_bigint % &p),
-            F::from((&epoch_bigint / &p) % &p),
-            F::from((&epoch_bigint / (&p * &p)) % &p),
-            F::from((&epoch_bigint / (&p * &p * &p)) % &p),
+            F::from_u128((&epoch_bigint % &p).try_into().unwrap()),
+            F::from_u128(((&epoch_bigint / &p) % &p).try_into().unwrap()),
+            F::from_u128(((&epoch_bigint / (&p * &p)) % &p).try_into().unwrap()),
+            F::from_u128(((&epoch_bigint / (&p * &p * &p)) % &p).try_into().unwrap()),
         ];
 
         let result = encode_epoch::<4>(epoch);
@@ -318,13 +285,13 @@ mod tests {
         let sep = TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
 
         let epoch_bigint = BigUint::from(sep);
-        let p = BigUint::from(FqConfig::MODULUS);
+        let p = BigUint::from(F::ORDER_U64);
 
         let expected = [
-            F::from(&epoch_bigint % &p),
-            F::from((&epoch_bigint / &p) % &p),
-            F::from((&epoch_bigint / (&p * &p)) % &p),
-            F::from((&epoch_bigint / (&p * &p * &p)) % &p),
+            F::from_u64((&epoch_bigint % &p).try_into().unwrap()),
+            F::from_u64(((&epoch_bigint / &p) % &p).try_into().unwrap()),
+            F::from_u64(((&epoch_bigint / (&p * &p)) % &p).try_into().unwrap()),
+            F::from_u64(((&epoch_bigint / (&p * &p * &p)) % &p).try_into().unwrap()),
         ];
 
         let result = encode_epoch::<4>(epoch);
@@ -336,14 +303,14 @@ mod tests {
         let epoch = u32::MAX;
         let sep = TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
 
-        let epoch_bigint = (BigUint::from(epoch) << 8) + sep;
-        let p = BigUint::from(FqConfig::MODULUS);
+        let epoch_bigint: BigUint = (BigUint::from(epoch) << 8) + sep;
+        let p = BigUint::from(F::ORDER_U64);
 
         let expected = [
-            F::from(&epoch_bigint % &p),
-            F::from((&epoch_bigint / &p) % &p),
-            F::from((&epoch_bigint / (&p * &p)) % &p),
-            F::from((&epoch_bigint / (&p * &p * &p)) % &p),
+            F::from_u128((&epoch_bigint % &p).try_into().unwrap()),
+            F::from_u128(((&epoch_bigint / &p) % &p).try_into().unwrap()),
+            F::from_u128(((&epoch_bigint / (&p * &p)) % &p).try_into().unwrap()),
+            F::from_u128(((&epoch_bigint / (&p * &p * &p)) % &p).try_into().unwrap()),
         ];
 
         let result = encode_epoch::<4>(epoch);
@@ -357,10 +324,10 @@ mod tests {
         // do not produce the same encoding, unless they are the same
 
         let mut map = HashMap::new();
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         for _ in 0..10_000 {
-            let epoch: u32 = rng.gen();
+            let epoch: u32 = rng.random();
             let encoding = encode_epoch::<4>(epoch);
             if let Some(prev_epoch) = map.insert(encoding, epoch) {
                 assert_eq!(
@@ -393,21 +360,45 @@ mod tests {
         let message_bigint = BigUint::from_bytes_le(&message);
 
         // Field modulus
-        let p = BigUint::from(FqConfig::MODULUS);
+        let p = BigUint::from(F::ORDER_U64);
 
         // Compute expected: base-p decomposition
         //
         // We compute this by hand to ensure that the test is correct.
         let expected = [
-            F::from(&message_bigint % &p),
-            F::from((&message_bigint / &p) % &p),
-            F::from((&message_bigint / (&p * &p)) % &p),
-            F::from((&message_bigint / (&p * &p * &p)) % &p),
-            F::from((&message_bigint / (&p * &p * &p * &p)) % &p),
-            F::from((&message_bigint / (&p * &p * &p * &p * &p)) % &p),
-            F::from((&message_bigint / (&p * &p * &p * &p * &p * &p)) % &p),
-            F::from((&message_bigint / (&p * &p * &p * &p * &p * &p * &p)) % &p),
-            F::from((&message_bigint / (&p * &p * &p * &p * &p * &p * &p * &p)) % &p),
+            F::from_u128((&message_bigint % &p).try_into().unwrap()),
+            F::from_u128(((&message_bigint / &p) % &p).try_into().unwrap()),
+            F::from_u128(((&message_bigint / (&p * &p)) % &p).try_into().unwrap()),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p * &p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
         ];
 
         let computed = super::encode_message::<9>(&message);
@@ -426,21 +417,45 @@ mod tests {
         let message_bigint = BigUint::from_bytes_le(&message);
 
         // Field modulus
-        let p = BigUint::from(FqConfig::MODULUS);
+        let p = BigUint::from(F::ORDER_U64);
 
         // Compute expected: base-p decomposition
         //
         // We compute this by hand to ensure that the test is correct.
         let expected = [
-            F::from(&message_bigint % &p),
-            F::from((&message_bigint / &p) % &p),
-            F::from((&message_bigint / (&p * &p)) % &p),
-            F::from((&message_bigint / (&p * &p * &p)) % &p),
-            F::from((&message_bigint / (&p * &p * &p * &p)) % &p),
-            F::from((&message_bigint / (&p * &p * &p * &p * &p)) % &p),
-            F::from((&message_bigint / (&p * &p * &p * &p * &p * &p)) % &p),
-            F::from((&message_bigint / (&p * &p * &p * &p * &p * &p * &p)) % &p),
-            F::from((&message_bigint / (&p * &p * &p * &p * &p * &p * &p * &p)) % &p),
+            F::from_u128((&message_bigint % &p).try_into().unwrap()),
+            F::from_u128(((&message_bigint / &p) % &p).try_into().unwrap()),
+            F::from_u128(((&message_bigint / (&p * &p)) % &p).try_into().unwrap()),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p * &p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
         ];
 
         let computed = super::encode_message::<9>(&message);
@@ -461,10 +476,10 @@ mod tests {
     #[test]
     fn test_decode_to_chunks_simple_value() {
         // Field modulus
-        let p = BigUint::from(FqConfig::MODULUS);
+        let p = BigUint::from(F::ORDER_U64);
 
         // Create field elements
-        let input = [F::from(1u64), F::from(2u64)];
+        let input = [F::from_u64(1u64), F::from_u64(2u64)];
         let input_uint = BigUint::from(2u64) * &p + BigUint::from(1u64);
 
         // CHUNK_SIZE = 4 => max value = 2^4 = 16
@@ -488,10 +503,10 @@ mod tests {
     #[test]
     fn test_decode_to_chunks_max_value() {
         // Field modulus
-        let p = BigUint::from(FqConfig::MODULUS);
+        let p = BigUint::from(F::ORDER_U64);
 
         // Use all field elements set to p - 1
-        let input = [F::from(p.clone() - 1u32); 3];
+        let input = [F::from_u128((p.clone() - 1u32).try_into().unwrap()); 3];
 
         // Compute combined input_uint:
         //
@@ -525,17 +540,16 @@ mod tests {
         const BASE: usize = 1 << CHUNK_SIZE; // 16
         const DIMENSION: usize = 32;
 
-        let mut rng = thread_rng();
-        let modulus = BigUint::from(FqConfig::MODULUS);
+        let mut rng = rand::rng();
+        let modulus = BigUint::from(F::ORDER_U64);
 
         // Generate random field elements
-        let input_field_elements: [F; HASH_LEN_FE] =
-            std::array::from_fn(|_| F::from(rng.gen::<u128>()));
+        let input_field_elements: [F; HASH_LEN_FE] = rng.random();
 
         // Reconstruct bigint from field elements using base-p
         let mut expected_bigint = BigUint::zero();
         for fe in &input_field_elements {
-            expected_bigint = &expected_bigint * &modulus + BigUint::from(fe.into_bigint());
+            expected_bigint = &expected_bigint * &modulus + fe.as_canonical_biguint();
         }
 
         // Decode to chunks

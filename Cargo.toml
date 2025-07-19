@@ -29,13 +29,16 @@ uninlined_format_args = "allow"
 upper_case_acronyms = "allow"
 
 [dependencies]
-rand = "0.8.5"
+rand = "0.9"
 sha3 = "0.10.8"
-zkhash = { git = "https://github.com/HorizenLabs/poseidon2", branch = "main", package = "zkhash" }
 num-bigint = "0.4.6"
 rayon = "1.10.0"
 num-traits = "0.2.19"
 dashmap = "6.1.0"
+
+p3-field = { git = "https://github.com/Plonky3/Plonky3.git", rev = "d0c4a36" }
+p3-baby-bear = { git = "https://github.com/Plonky3/Plonky3.git", rev = "d0c4a36" }
+p3-symmetric = { git = "https://github.com/Plonky3/Plonky3.git", rev = "d0c4a36" }
 
 [dev-dependencies]
 criterion = "0.5"
