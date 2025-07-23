@@ -1,4 +1,5 @@
 use rand::Rng;
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::MESSAGE_LENGTH;
 
@@ -11,8 +12,8 @@ use crate::MESSAGE_LENGTH;
 ///
 /// Note that BASE must be at most 2^8, as we encode chunks as u8.
 pub trait MessageHash {
-    type Parameter: Clone + Sized;
-    type Randomness;
+    type Parameter: Clone + Sized + Serialize + DeserializeOwned;
+    type Randomness: Serialize + DeserializeOwned;
 
     /// number of entries in a hash
     const DIMENSION: usize;

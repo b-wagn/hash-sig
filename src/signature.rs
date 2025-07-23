@@ -1,4 +1,5 @@
 use rand::Rng;
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::MESSAGE_LENGTH;
 
@@ -13,9 +14,9 @@ pub enum SigningError {
 /// We sign messages with respect to epochs.
 /// We assume each we sign for each epoch only once.
 pub trait SignatureScheme {
-    type PublicKey;
-    type SecretKey;
-    type Signature;
+    type PublicKey: Serialize + DeserializeOwned;
+    type SecretKey: Serialize + DeserializeOwned;
+    type Signature: Serialize + DeserializeOwned;
 
     /// number of epochs that are supported
     /// with one key. Must be a power of two.

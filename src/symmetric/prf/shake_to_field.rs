@@ -2,6 +2,7 @@ use super::Pseudorandom;
 use p3_baby_bear::BabyBear;
 use p3_field::PrimeCharacteristicRing;
 use p3_field::PrimeField64;
+use serde::{de::DeserializeOwned, Serialize};
 use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
     Shake128,
@@ -24,7 +25,10 @@ const PRF_DOMAIN_SEP: [u8; 16] = [
 /// It outputs OUTPUT_LENGTH_FE many field elements.
 pub struct ShakePRFtoF<const OUTPUT_LENGTH_FE: usize>;
 
-impl<const OUTPUT_LENGTH_FE: usize> Pseudorandom for ShakePRFtoF<OUTPUT_LENGTH_FE> {
+impl<const OUTPUT_LENGTH_FE: usize> Pseudorandom for ShakePRFtoF<OUTPUT_LENGTH_FE>
+where
+    [F; OUTPUT_LENGTH_FE]: Serialize + DeserializeOwned,
+{
     type Key = [u8; KEY_LENGTH];
     type Output = [F; OUTPUT_LENGTH_FE];
 

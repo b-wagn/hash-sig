@@ -1,4 +1,5 @@
 use rand::Rng;
+use serde::{de::DeserializeOwned, Serialize};
 
 /// Trait to model a tweakable hash function.
 /// Such a function takes a public parameter, a tweak, and a
@@ -13,9 +14,9 @@ use rand::Rng;
 /// to obtain distinct tweaks for applications in chains and
 /// applications in Merkle trees.
 pub trait TweakableHash {
-    type Parameter: Copy + Sized + Send + Sync;
+    type Parameter: Copy + Sized + Send + Sync + Serialize + DeserializeOwned;
     type Tweak;
-    type Domain: Copy + PartialEq + Sized + Send + Sync;
+    type Domain: Copy + PartialEq + Sized + Send + Sync + Serialize + DeserializeOwned;
 
     /// Generates a random public parameter.
     fn rand_parameter<R: Rng>(rng: &mut R) -> Self::Parameter;

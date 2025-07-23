@@ -1,3 +1,4 @@
+use serde::{de::DeserializeOwned, Serialize};
 use sha3::{Digest, Sha3_256};
 
 use crate::{TWEAK_SEPARATOR_FOR_CHAIN_HASH, TWEAK_SEPARATOR_FOR_TREE_HASH};
@@ -62,6 +63,9 @@ pub struct ShaTweakHash<const PARAMETER_LEN: usize, const HASH_LEN: usize>;
 
 impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
     for ShaTweakHash<PARAMETER_LEN, HASH_LEN>
+where
+    [u8; PARAMETER_LEN]: Serialize + DeserializeOwned,
+    [u8; HASH_LEN]: Serialize + DeserializeOwned,
 {
     type Parameter = [u8; PARAMETER_LEN];
 

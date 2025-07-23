@@ -4,6 +4,7 @@ use p3_baby_bear::BabyBear;
 use p3_field::PrimeCharacteristicRing;
 use p3_field::PrimeField;
 use p3_field::PrimeField64;
+use serde::{de::DeserializeOwned, Serialize};
 
 use super::poseidon::encode_epoch;
 use super::poseidon::encode_message;
@@ -115,6 +116,9 @@ impl<
         PARAMETER_LEN,
         RAND_LEN,
     >
+where
+    [F; PARAMETER_LEN]: Serialize + DeserializeOwned,
+    [F; RAND_LEN]: Serialize + DeserializeOwned,
 {
     type Parameter = [F; PARAMETER_LEN];
 

@@ -1,4 +1,5 @@
 use rand::Rng;
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::MESSAGE_LENGTH;
 
@@ -18,8 +19,8 @@ pub type EncodingError = ();
 /// x = (x_1,..,x_k) and x' = (x'_1,..,x'_k) we have
 /// x_i > x_i' for all i = 1,...,k.
 pub trait IncomparableEncoding {
-    type Parameter;
-    type Randomness;
+    type Parameter: Serialize + DeserializeOwned;
+    type Randomness: Serialize + DeserializeOwned;
 
     /// number of entries in a codeword
     const DIMENSION: usize;

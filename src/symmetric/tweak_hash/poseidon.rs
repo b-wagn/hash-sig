@@ -4,6 +4,7 @@ use p3_baby_bear::BabyBear;
 use p3_field::PrimeCharacteristicRing;
 use p3_field::PrimeField64;
 use p3_symmetric::Permutation;
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::TWEAK_SEPARATOR_FOR_CHAIN_HASH;
 use crate::TWEAK_SEPARATOR_FOR_TREE_HASH;
@@ -243,8 +244,10 @@ impl<
         const TWEAK_LEN: usize,
         const CAPACITY: usize,
         const NUM_CHUNKS: usize,
-    > TweakableHash
-    for PoseidonTweakHash<PARAMETER_LEN, HASH_LEN, TWEAK_LEN, CAPACITY, NUM_CHUNKS>
+    > TweakableHash for PoseidonTweakHash<PARAMETER_LEN, HASH_LEN, TWEAK_LEN, CAPACITY, NUM_CHUNKS>
+where
+    [F; PARAMETER_LEN]: Serialize + DeserializeOwned,
+    [F; HASH_LEN]: Serialize + DeserializeOwned,
 {
     type Parameter = [F; PARAMETER_LEN];
 

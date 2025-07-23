@@ -1,6 +1,7 @@
 use crate::{
     symmetric::message_hash::bytes_to_chunks, MESSAGE_LENGTH, TWEAK_SEPARATOR_FOR_MESSAGE_HASH,
 };
+use serde::{de::DeserializeOwned, Serialize};
 
 use super::MessageHash;
 
@@ -24,6 +25,9 @@ impl<
         const NUM_CHUNKS: usize,
         const CHUNK_SIZE: usize,
     > MessageHash for ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS, CHUNK_SIZE>
+where
+    [u8; PARAMETER_LEN]: Serialize + DeserializeOwned,
+    [u8; RAND_LEN]: Serialize + DeserializeOwned,
 {
     type Parameter = [u8; PARAMETER_LEN];
 

@@ -4,6 +4,7 @@ use p3_baby_bear::BabyBear;
 use p3_field::PrimeCharacteristicRing;
 use p3_field::PrimeField;
 use p3_field::PrimeField64;
+use serde::{de::DeserializeOwned, Serialize};
 
 use super::MessageHash;
 use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
@@ -98,6 +99,9 @@ impl<
         TWEAK_LEN_FE,
         MSG_LEN_FE,
     >
+where
+    [F; PARAMETER_LEN]: Serialize + DeserializeOwned,
+    [F; RAND_LEN_FE]: Serialize + DeserializeOwned,
 {
     type Parameter = [F; PARAMETER_LEN];
 

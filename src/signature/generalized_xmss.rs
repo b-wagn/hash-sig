@@ -1,5 +1,6 @@
 use rand::Rng;
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     inc_encoding::IncomparableEncoding,
@@ -33,6 +34,8 @@ pub struct GeneralizedXMSSSignatureScheme<
 
 /// Signature for GeneralizedXMSSSignatureScheme
 /// It contains a Merkle authentication path, encoding randomness, and a list of hashes
+#[derive(Serialize, Deserialize)]
+#[serde(bound = "")]
 pub struct GeneralizedXMSSSignature<IE: IncomparableEncoding, TH: TweakableHash> {
     path: HashTreeOpening<TH>,
     rho: IE::Randomness,
@@ -41,6 +44,7 @@ pub struct GeneralizedXMSSSignature<IE: IncomparableEncoding, TH: TweakableHash>
 
 /// Public key for GeneralizedXMSSSignatureScheme
 /// It contains a Merkle root and a parameter for the tweakable hash
+#[derive(Serialize, Deserialize)]
 pub struct GeneralizedXMSSPublicKey<TH: TweakableHash> {
     root: TH::Domain,
     parameter: TH::Parameter,
@@ -51,6 +55,8 @@ pub struct GeneralizedXMSSPublicKey<TH: TweakableHash> {
 ///
 /// Note: one may choose to regenerate the tree on the fly, but this
 /// would be costly for signatures.
+#[derive(Serialize, Deserialize)]
+#[serde(bound = "")]
 pub struct GeneralizedXMSSSecretKey<PRF: Pseudorandom, TH: TweakableHash> {
     prf_key: PRF::Key,
     tree: HashTree<TH>,

@@ -1,4 +1,5 @@
 use super::Pseudorandom;
+use serde::{de::DeserializeOwned, Serialize};
 use sha3::{Digest, Sha3_256};
 
 const KEY_LENGTH: usize = 32; // 32 bytes
@@ -10,7 +11,10 @@ const PRF_DOMAIN_SEP: [u8; 16] = [
 // Output Length must be at most 32 bytes
 pub struct ShaPRF<const OUTPUT_LENGTH: usize>;
 
-impl<const OUTPUT_LENGTH: usize> Pseudorandom for ShaPRF<OUTPUT_LENGTH> {
+impl<const OUTPUT_LENGTH: usize> Pseudorandom for ShaPRF<OUTPUT_LENGTH>
+where
+    [u8; OUTPUT_LENGTH]: Serialize + DeserializeOwned,
+{
     type Key = [u8; KEY_LENGTH];
     type Output = [u8; OUTPUT_LENGTH];
 

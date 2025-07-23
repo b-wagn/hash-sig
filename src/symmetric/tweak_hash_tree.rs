@@ -1,9 +1,12 @@
 use crate::symmetric::tweak_hash::TweakableHash;
 use rand::Rng;
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 
 /// A single layer of a sparse Hash-Tree
 /// based on tweakable hash function
+#[derive(Serialize, Deserialize)]
+#[serde(bound = "")]
 struct HashTreeLayer<TH: TweakableHash> {
     start_index: usize,
     nodes: Vec<TH::Domain>,
@@ -19,6 +22,8 @@ struct HashTreeLayer<TH: TweakableHash> {
 ///
 /// For instance, we may consider a tree of depth 32,
 /// but only 2^{26} leafs really exist.
+#[derive(Serialize, Deserialize)]
+#[serde(bound = "")]
 pub struct HashTree<TH: TweakableHash> {
     /// Depth of the tree. The tree can have at most
     /// 1 << depth many leafs. It has depth + 1 many layers
@@ -30,6 +35,8 @@ pub struct HashTree<TH: TweakableHash> {
 }
 
 /// Opening in a hash-tree: a co-path, without the leaf
+#[derive(Serialize, Deserialize)]
+#[serde(bound = "")]
 pub struct HashTreeOpening<TH: TweakableHash> {
     /// The co-path needed to verify
     /// If the tree has depth h, i.e, 2^h leafs

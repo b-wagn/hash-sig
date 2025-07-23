@@ -1,8 +1,9 @@
 use rand::Rng;
+use serde::{de::DeserializeOwned, Serialize};
 
 /// Trait to model a pseudorandom function
 pub trait Pseudorandom {
-    type Key: Send + Sync;
+    type Key: Send + Sync + Serialize + DeserializeOwned;
     type Output;
 
     /// Sample a random domain element
