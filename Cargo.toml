@@ -44,6 +44,7 @@ p3-symmetric = { git = "https://github.com/Plonky3/Plonky3.git", rev = "d0c4a36"
 [dev-dependencies]
 criterion = "0.5"
 proptest = "1.7"
+bincode = { version = "2.0.1", features = ["serde"] }
 
 [features]
 slow-tests = []

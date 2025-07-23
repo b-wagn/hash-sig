@@ -62,6 +62,8 @@ pub mod generalized_xmss;
 
 #[cfg(test)]
 mod test_templates {
+    use serde::{de::DeserializeOwned, Serialize};
+
     use super::*;
 
     /// Generic test for any implementation of the `SignatureScheme` trait.
@@ -99,5 +101,19 @@ mod test_templates {
             "Signature verification failed. . Epoch was {:?}",
             epoch
         );
+
+        test_bincode_round_trip_consistency(&pk);
+        test_bincode_round_trip_consistency(&sk);
+        test_bincode_round_trip_consistency(&signature);
+    }
+
+    fn test_bincode_round_trip_consistency<T: Serialize + DeserializeOwned>(ori: &T) {
+        use bincode::serde::{decode_from_slice, encode_to_vec};
+        let config = bincode::config::standard();
+        let bytes_ori = encode_to_vec(ori, config).expect("Bincode encode should not fail");
+        let (dec, _): (T, _) =
+            decode_from_slice(&bytes_ori, config).expect("Bincode decode should not fail");
+        let bytes_dec = encode_to_vec(dec, config).expect("Bincode encode should not fail");
+        assert_eq!(bytes_ori, bytes_dec, "Serde consistency check failed");
     }
 }
