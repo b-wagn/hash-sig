@@ -28,17 +28,40 @@ pub(crate) fn encode_message<const MSG_LEN_FE: usize>(
     })
 }
 
-/// Function to encode an epoch (= tweak in the message hash) as an array of field elements.
+/// Encodes an epoch and a domain separator into an array of field elements.
+///
+/// This function combines the `u32` epoch and a constant 8-bit separator into a single
+/// `u64` value. It then decomposes this value into its base-`p` representation,
+/// where `p` is the field's canonical order, to produce the output array.
+///
+/// ### Warning: Field Size Limitation
+///
+/// This implementation is optimized for fields whose modulus fits within a `u64`.
+/// It is **not** suitable for fields with larger moduli that require `BigUint`
+/// representations and will fail to compile or produce incorrect results in such cases.
 pub(crate) fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
-    // Combine epoch and domain separator
-    let mut acc = ((epoch as u64) << 8) | (TWEAK_SEPARATOR_FOR_MESSAGE_HASH as u64);
+    // Combine epoch and domain separator into a single u64.
+    let acc = ((epoch as u64) << 8) | (TWEAK_SEPARATOR_FOR_MESSAGE_HASH as u64);
 
-    // Convert into field elements in base-p
-    std::array::from_fn(|_| {
-        let digit = acc % F::ORDER_U64;
-        acc /= F::ORDER_U64;
-        F::from_u64(digit)
-    })
+    // Decompose the combined u64 value into field elements using base-p representation.
+    //
+    // Since the input `acc` is at most 40 bits, its base-p representation for any
+    // prime field up to 64 bits will require at most two "digits".
+    //
+    // We compute these directly for efficiency instead of using a generic loop.
+    let mut result = [F::ZERO; TWEAK_LEN_FE];
+
+    // The first "digit" of the base conversion.
+    if TWEAK_LEN_FE > 0 {
+        result[0] = F::from_u64(acc % F::ORDER_U64);
+    }
+    // The second "digit" of the base conversion.
+    if TWEAK_LEN_FE > 1 {
+        result[1] = F::from_u64(acc / F::ORDER_U64);
+    }
+
+    // Any subsequent elements (if TWEAK_LEN_FE > 2) remain zero.
+    result
 }
 
 /// Function to decode a vector of field elements into
