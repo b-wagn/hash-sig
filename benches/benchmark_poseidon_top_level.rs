@@ -1,8 +1,6 @@
 use std::cmp::min;
 
 use criterion::{Criterion, SamplingMode, black_box};
-use rand::Rng;
-
 use hashsig::{
     MESSAGE_LENGTH,
     signature::{
@@ -17,6 +15,7 @@ use hashsig::{
         },
     },
 };
+use rand::Rng;
 
 /// We will benchmark with actual lifetime min(LIFETIME, 1 << MAX_LOG_ACTIVATION_DURATION)
 /// to keep key generation time within reasonable limits.

@@ -1,14 +1,13 @@
-use super::Pseudorandom;
+use num_bigint::BigUint;
 use p3_baby_bear::BabyBear;
-use p3_field::PrimeCharacteristicRing;
-use p3_field::PrimeField64;
+use p3_field::{PrimeCharacteristicRing, PrimeField64};
 use serde::{Serialize, de::DeserializeOwned};
 use sha3::{
     Shake128,
     digest::{ExtendableOutput, Update, XofReader},
 };
 
-use num_bigint::BigUint;
+use super::Pseudorandom;
 
 type F = BabyBear;
 

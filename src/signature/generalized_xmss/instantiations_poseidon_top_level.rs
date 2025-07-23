@@ -48,14 +48,12 @@ pub mod lifetime_2_to_the_18 {
 
     #[cfg(test)]
     mod test {
-
+        #[cfg(feature = "slow-tests")]
+        use crate::signature::test_templates::test_signature_scheme_correctness;
         use crate::signature::{
             SignatureScheme,
             generalized_xmss::instantiations_poseidon_top_level::lifetime_2_to_the_18::SIGTopLevelTargetSumLifetime18Dim64Base8,
         };
-
-        #[cfg(feature = "slow-tests")]
-        use crate::signature::test_templates::test_signature_scheme_correctness;
 
         #[test]
         pub fn test_internal_consistency() {
@@ -136,7 +134,6 @@ pub mod lifetime_2_to_the_32 {
 
             use super::*;
             use crate::signature::SignatureScheme;
-
             #[cfg(feature = "slow-tests")]
             use crate::signature::test_templates::test_signature_scheme_correctness;
 
@@ -217,7 +214,6 @@ pub mod lifetime_2_to_the_32 {
 
             use super::*;
             use crate::signature::SignatureScheme;
-
             #[cfg(feature = "slow-tests")]
             use crate::signature::test_templates::test_signature_scheme_correctness;
 
@@ -297,7 +293,6 @@ pub mod lifetime_2_to_the_32 {
 
             use super::*;
             use crate::signature::SignatureScheme;
-
             #[cfg(feature = "slow-tests")]
             use crate::signature::test_templates::test_signature_scheme_correctness;
 

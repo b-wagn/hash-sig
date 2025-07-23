@@ -110,15 +110,13 @@ pub mod lifetime_2_to_the_18 {
 
         #[cfg(test)]
         mod test {
-            use crate::signature::SignatureScheme;
-
-            #[cfg(feature = "slow-tests")]
-            use crate::signature::test_templates::test_signature_scheme_correctness;
-
             use super::{
                 SIGWinternitzLifetime18W1, SIGWinternitzLifetime18W2, SIGWinternitzLifetime18W4,
                 SIGWinternitzLifetime18W8,
             };
+            use crate::signature::SignatureScheme;
+            #[cfg(feature = "slow-tests")]
+            use crate::signature::test_templates::test_signature_scheme_correctness;
 
             #[test]
             pub fn test_w1_internal_consistency() {
@@ -307,17 +305,15 @@ pub mod lifetime_2_to_the_18 {
 
         #[cfg(test)]
         mod test {
-            use crate::signature::SignatureScheme;
-
-            #[cfg(feature = "slow-tests")]
-            use crate::signature::test_templates::test_signature_scheme_correctness;
-
             use super::{
                 SIGTargetSumLifetime18W1NoOff, SIGTargetSumLifetime18W1Off10,
                 SIGTargetSumLifetime18W2NoOff, SIGTargetSumLifetime18W2Off10,
                 SIGTargetSumLifetime18W4NoOff, SIGTargetSumLifetime18W4Off10,
                 SIGTargetSumLifetime18W8NoOff, SIGTargetSumLifetime18W8Off10,
             };
+            use crate::signature::SignatureScheme;
+            #[cfg(feature = "slow-tests")]
+            use crate::signature::test_templates::test_signature_scheme_correctness;
 
             #[test]
             pub fn test_w1_internal_consistency() {
@@ -513,15 +509,13 @@ pub mod lifetime_2_to_the_20 {
 
         #[cfg(test)]
         mod test {
-            use crate::signature::SignatureScheme;
-
-            #[cfg(feature = "slow-tests")]
-            use crate::signature::test_templates::test_signature_scheme_correctness;
-
             use super::{
                 SIGWinternitzLifetime20W1, SIGWinternitzLifetime20W2, SIGWinternitzLifetime20W4,
                 SIGWinternitzLifetime20W8,
             };
+            use crate::signature::SignatureScheme;
+            #[cfg(feature = "slow-tests")]
+            use crate::signature::test_templates::test_signature_scheme_correctness;
 
             #[test]
             pub fn test_w1_internal_consistency() {
@@ -711,17 +705,15 @@ pub mod lifetime_2_to_the_20 {
 
         #[cfg(test)]
         mod test {
-            use crate::signature::SignatureScheme;
-
-            #[cfg(feature = "slow-tests")]
-            use crate::signature::test_templates::test_signature_scheme_correctness;
-
             use super::{
                 SIGTargetSumLifetime20W1NoOff, SIGTargetSumLifetime20W1Off10,
                 SIGTargetSumLifetime20W2NoOff, SIGTargetSumLifetime20W2Off10,
                 SIGTargetSumLifetime20W4NoOff, SIGTargetSumLifetime20W4Off10,
                 SIGTargetSumLifetime20W8NoOff, SIGTargetSumLifetime20W8Off10,
             };
+            use crate::signature::SignatureScheme;
+            #[cfg(feature = "slow-tests")]
+            use crate::signature::test_templates::test_signature_scheme_correctness;
 
             #[test]
             pub fn test_w1_internal_consistency() {

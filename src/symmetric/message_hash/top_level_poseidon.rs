@@ -1,19 +1,17 @@
 use num_bigint::BigUint;
-use p3_baby_bear::BabyBear;
-use p3_baby_bear::default_babybear_poseidon2_24;
-use p3_field::PrimeCharacteristicRing;
-use p3_field::PrimeField;
-use p3_field::PrimeField64;
+use p3_baby_bear::{BabyBear, default_babybear_poseidon2_24};
+use p3_field::{PrimeCharacteristicRing, PrimeField, PrimeField64};
 use serde::{Serialize, de::DeserializeOwned};
 
-use super::MessageHash;
-use super::poseidon::encode_epoch;
-use super::poseidon::encode_message;
-use crate::MESSAGE_LENGTH;
-use crate::hypercube::hypercube_find_layer;
-use crate::hypercube::hypercube_part_size;
-use crate::hypercube::map_to_vertex;
-use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
+use super::{
+    MessageHash,
+    poseidon::{encode_epoch, encode_message},
+};
+use crate::{
+    MESSAGE_LENGTH,
+    hypercube::{hypercube_find_layer, hypercube_part_size, map_to_vertex},
+    symmetric::tweak_hash::poseidon::poseidon_compress,
+};
 
 type F = BabyBear;
 
@@ -240,10 +238,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use proptest::prelude::*;
     use rand::Rng;
 
+    use super::*;
     use crate::symmetric::message_hash::{
         MessageHash, top_level_poseidon::TopLevelPoseidonMessageHash,
     };

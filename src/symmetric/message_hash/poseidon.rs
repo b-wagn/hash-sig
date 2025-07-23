@@ -1,15 +1,13 @@
 use num_bigint::BigUint;
-use p3_baby_bear::BabyBear;
-use p3_baby_bear::default_babybear_poseidon2_24;
-use p3_field::PrimeCharacteristicRing;
-use p3_field::PrimeField;
-use p3_field::PrimeField64;
+use p3_baby_bear::{BabyBear, default_babybear_poseidon2_24};
+use p3_field::{PrimeCharacteristicRing, PrimeField, PrimeField64};
 use serde::{Serialize, de::DeserializeOwned};
 
 use super::MessageHash;
-use crate::MESSAGE_LENGTH;
-use crate::TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
-use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
+use crate::{
+    MESSAGE_LENGTH, TWEAK_SEPARATOR_FOR_MESSAGE_HASH,
+    symmetric::tweak_hash::poseidon::poseidon_compress,
+};
 
 type F = BabyBear;
 
@@ -200,10 +198,12 @@ pub type PoseidonMessageHashW1 = PoseidonMessageHash<5, 5, 5, 163, 2, 2, 9>;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::collections::HashMap;
+
     use num_traits::Zero;
     use rand::Rng;
-    use std::collections::HashMap;
+
+    use super::*;
 
     #[test]
     fn test_apply() {

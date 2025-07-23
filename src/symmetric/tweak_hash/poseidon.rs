@@ -1,15 +1,10 @@
-use p3_baby_bear::BabyBear;
-use p3_baby_bear::default_babybear_poseidon2_16;
-use p3_baby_bear::default_babybear_poseidon2_24;
-use p3_field::PrimeCharacteristicRing;
-use p3_field::PrimeField64;
+use p3_baby_bear::{BabyBear, default_babybear_poseidon2_16, default_babybear_poseidon2_24};
+use p3_field::{PrimeCharacteristicRing, PrimeField64};
 use p3_symmetric::Permutation;
 use serde::{Serialize, de::DeserializeOwned};
 
-use crate::TWEAK_SEPARATOR_FOR_CHAIN_HASH;
-use crate::TWEAK_SEPARATOR_FOR_TREE_HASH;
-
 use super::TweakableHash;
+use crate::{TWEAK_SEPARATOR_FOR_CHAIN_HASH, TWEAK_SEPARATOR_FOR_TREE_HASH};
 
 type F = BabyBear;
 

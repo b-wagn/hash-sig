@@ -1,6 +1,7 @@
-use super::Pseudorandom;
 use serde::{Serialize, de::DeserializeOwned};
 use sha3::{Digest, Sha3_256};
+
+use super::Pseudorandom;
 
 const KEY_LENGTH: usize = 32; // 32 bytes
 const PRF_DOMAIN_SEP: [u8; 16] = [

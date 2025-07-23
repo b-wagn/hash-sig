@@ -1,6 +1,5 @@
-use crate::{MESSAGE_LENGTH, symmetric::message_hash::MessageHash};
-
 use super::IncomparableEncoding;
+use crate::{MESSAGE_LENGTH, symmetric::message_hash::MessageHash};
 
 /// Incomparable Encoding Scheme based on Target Sums,
 /// implemented from a given message hash.

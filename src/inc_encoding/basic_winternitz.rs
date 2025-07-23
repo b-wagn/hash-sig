@@ -1,9 +1,8 @@
+use super::IncomparableEncoding;
 use crate::{
     MESSAGE_LENGTH,
     symmetric::message_hash::{MessageHash, bytes_to_chunks},
 };
-
-use super::IncomparableEncoding;
 
 /// Incomparable Encoding Scheme based on the basic
 /// Winternitz scheme, implemented from a given message hash.

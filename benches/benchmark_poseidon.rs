@@ -1,6 +1,4 @@
 use criterion::{Criterion, SamplingMode, black_box};
-use rand::Rng;
-
 use hashsig::{
     MESSAGE_LENGTH,
     signature::{
@@ -33,6 +31,7 @@ use hashsig::{
         },
     },
 };
+use rand::Rng;
 
 /// A template for benchmarking signature schemes (key gen, signing, verification)
 pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, description: &str) {

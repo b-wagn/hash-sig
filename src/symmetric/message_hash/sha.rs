@@ -1,11 +1,10 @@
+use serde::{Serialize, de::DeserializeOwned};
+use sha3::{Digest, Sha3_256};
+
+use super::MessageHash;
 use crate::{
     MESSAGE_LENGTH, TWEAK_SEPARATOR_FOR_MESSAGE_HASH, symmetric::message_hash::bytes_to_chunks,
 };
-use serde::{Serialize, de::DeserializeOwned};
-
-use super::MessageHash;
-
-use sha3::{Digest, Sha3_256};
 
 /// A message hash implemented using SHA3
 /// All lengths must be given in Bytes.

@@ -1,12 +1,8 @@
-use dashmap::DashMap;
-use dashmap::mapref::one::Ref;
+use std::{cmp::min, ops::RangeInclusive, sync::LazyLock};
+
+use dashmap::{DashMap, mapref::one::Ref};
 use num_bigint::BigUint;
-use num_traits::One;
-use num_traits::ToPrimitive;
-use num_traits::Zero;
-use std::cmp::min;
-use std::ops::RangeInclusive;
-use std::sync::LazyLock;
+use num_traits::{One, ToPrimitive, Zero};
 
 /// Max dimension precomputed for layer sizes.
 const MAX_DIMENSION: usize = 100;
@@ -260,13 +256,13 @@ pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use num_bigint::{BigInt, BigUint};
-    use num_traits::FromPrimitive;
-    use num_traits::ToPrimitive;
-    use num_traits::Zero;
-    use proptest::prelude::*;
     use std::sync::Mutex;
+
+    use num_bigint::{BigInt, BigUint};
+    use num_traits::{FromPrimitive, ToPrimitive, Zero};
+    use proptest::prelude::*;
+
+    use super::*;
 
     // Reference implementation for testing purposes
     fn prepare_layer_sizes_by_binom(w: usize) -> Vec<Vec<BigUint>> {

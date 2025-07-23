@@ -78,10 +78,10 @@ pub mod sha;
 
 #[cfg(test)]
 mod tests {
+    use proptest::prelude::*;
     use sha::ShaTweak128192;
 
     use super::*;
-    use proptest::prelude::*;
 
     type TestTH = ShaTweak128192;
 

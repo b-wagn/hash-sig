@@ -2,6 +2,7 @@ use rand::Rng;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use super::{SignatureScheme, SigningError};
 use crate::{
     MESSAGE_LENGTH,
     inc_encoding::IncomparableEncoding,
@@ -11,8 +12,6 @@ use crate::{
         tweak_hash_tree::{HashTree, HashTreeOpening, hash_tree_verify},
     },
 };
-
-use super::{SignatureScheme, SigningError};
 
 /// Implementation of the generalized XMSS signature scheme
 /// from any incomparable encoding scheme and any tweakable hash
@@ -329,6 +328,7 @@ pub mod instantiations_sha;
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::{
         inc_encoding::{basic_winternitz::WinternitzEncoding, target_sum::TargetSumEncoding},
         signature::test_templates::test_signature_scheme_correctness,
@@ -342,8 +342,6 @@ mod tests {
             tweak_hash::{poseidon::PoseidonTweakW1L5, sha::ShaTweak192192},
         },
     };
-
-    use super::*;
 
     #[test]
     pub fn test_winternitz() {

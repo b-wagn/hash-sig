@@ -1,23 +1,31 @@
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_18::target_sum::SIGTargetSumLifetime18W1NoOff;
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_18::target_sum::SIGTargetSumLifetime18W2NoOff;
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_18::target_sum::SIGTargetSumLifetime18W4NoOff;
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_18::target_sum::SIGTargetSumLifetime18W8NoOff;
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_18::winternitz::SIGWinternitzLifetime18W1;
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_18::winternitz::SIGWinternitzLifetime18W2;
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_18::winternitz::SIGWinternitzLifetime18W4;
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_18::winternitz::SIGWinternitzLifetime18W8;
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_20::target_sum::SIGTargetSumLifetime20W1NoOff;
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_20::target_sum::SIGTargetSumLifetime20W2NoOff;
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_20::target_sum::SIGTargetSumLifetime20W4NoOff;
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_20::target_sum::SIGTargetSumLifetime20W8NoOff;
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_20::winternitz::SIGWinternitzLifetime20W1;
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_20::winternitz::SIGWinternitzLifetime20W2;
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_20::winternitz::SIGWinternitzLifetime20W4;
-use hashsig::signature::generalized_xmss::instantiations_poseidon::lifetime_2_to_the_20::winternitz::SIGWinternitzLifetime20W8;
-use hashsig::signature::SignatureScheme;
-use rand::rngs::ThreadRng;
-use rand::Rng;
 use std::time::Instant;
+
+use hashsig::signature::{
+    SignatureScheme,
+    generalized_xmss::instantiations_poseidon::{
+        lifetime_2_to_the_18::{
+            target_sum::{
+                SIGTargetSumLifetime18W1NoOff, SIGTargetSumLifetime18W2NoOff,
+                SIGTargetSumLifetime18W4NoOff, SIGTargetSumLifetime18W8NoOff,
+            },
+            winternitz::{
+                SIGWinternitzLifetime18W1, SIGWinternitzLifetime18W2, SIGWinternitzLifetime18W4,
+                SIGWinternitzLifetime18W8,
+            },
+        },
+        lifetime_2_to_the_20::{
+            target_sum::{
+                SIGTargetSumLifetime20W1NoOff, SIGTargetSumLifetime20W2NoOff,
+                SIGTargetSumLifetime20W4NoOff, SIGTargetSumLifetime20W8NoOff,
+            },
+            winternitz::{
+                SIGWinternitzLifetime20W1, SIGWinternitzLifetime20W2, SIGWinternitzLifetime20W4,
+                SIGWinternitzLifetime20W8,
+            },
+        },
+    },
+};
+use rand::{Rng, rngs::ThreadRng};
 
 // Function to measure execution time
 fn measure_time<T: SignatureScheme, R: Rng>(description: &str, rng: &mut R) {

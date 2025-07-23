@@ -1,9 +1,8 @@
 use serde::{Serialize, de::DeserializeOwned};
 use sha3::{Digest, Sha3_256};
 
-use crate::{TWEAK_SEPARATOR_FOR_CHAIN_HASH, TWEAK_SEPARATOR_FOR_TREE_HASH};
-
 use super::TweakableHash;
+use crate::{TWEAK_SEPARATOR_FOR_CHAIN_HASH, TWEAK_SEPARATOR_FOR_TREE_HASH};
 
 /// Enum to implement tweaks.
 pub enum ShaTweak {

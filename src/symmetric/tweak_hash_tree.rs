@@ -1,7 +1,8 @@
-use crate::symmetric::tweak_hash::TweakableHash;
 use rand::Rng;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+
+use crate::symmetric::tweak_hash::TweakableHash;
 
 /// A single layer of a sparse Hash-Tree
 /// based on tweakable hash function
@@ -256,9 +257,8 @@ mod tests {
 
     use proptest::prelude::*;
 
-    use crate::symmetric::tweak_hash::sha::ShaTweak128192;
-
     use super::*;
+    use crate::symmetric::tweak_hash::sha::ShaTweak128192;
 
     type TestTH = ShaTweak128192;
 
