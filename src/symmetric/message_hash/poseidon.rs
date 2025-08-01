@@ -1,8 +1,6 @@
 use num_bigint::BigUint;
 use p3_baby_bear::BabyBear;
 use p3_baby_bear::default_babybear_poseidon2_24;
-use p3_field::PrimeCharacteristicRing;
-use p3_field::PrimeField;
 use p3_field::PrimeField64;
 use serde::{Serialize, de::DeserializeOwned};
 
@@ -14,9 +12,12 @@ use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
 type F = BabyBear;
 
 /// Function to encode a message as an array of field elements
-pub(crate) fn encode_message<const MSG_LEN_FE: usize>(
+pub(crate) fn encode_message<F, const MSG_LEN_FE: usize>(
     message: &[u8; MESSAGE_LENGTH],
-) -> [F; MSG_LEN_FE] {
+) -> [F; MSG_LEN_FE]
+where
+    F: PrimeField64,
+{
     // Interpret message as a little-endian integer
     let mut acc = BigUint::from_bytes_le(message);
 
@@ -44,7 +45,10 @@ pub(crate) fn encode_message<const MSG_LEN_FE: usize>(
 /// 2.  **Sufficient Bit-Size:** The fast, two-step decomposition assumes the field is large
 ///     enough to hold a 40-bit value in at most two "digits". This requires the field's
 ///     prime to be **at least 20 bits wide**.
-pub(crate) fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
+pub(crate) fn encode_epoch<F, const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE]
+where
+    F: PrimeField64,
+{
     // Combine epoch and domain separator into a single u64.
     let acc = ((epoch as u64) << 8) | (TWEAK_SEPARATOR_FOR_MESSAGE_HASH as u64);
 
@@ -76,9 +80,12 @@ pub(crate) fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_L
 /// a vector of DIMENSION many chunks. One chunk is
 /// between 0 and BASE - 1 (inclusive).
 /// BASE and DIMENSION up to 2^8 (inclusive) are supported
-fn decode_to_chunks<const DIMENSION: usize, const BASE: usize, const HASH_LEN_FE: usize>(
+fn decode_to_chunks<F, const DIMENSION: usize, const BASE: usize, const HASH_LEN_FE: usize>(
     field_elements: &[F; HASH_LEN_FE],
-) -> [u8; DIMENSION] {
+) -> [u8; DIMENSION]
+where
+    F: PrimeField64,
+{
     // Combine field elements into one big integer
     let mut acc = BigUint::ZERO;
     for fe in field_elements {
@@ -156,8 +163,8 @@ where
         let perm = default_babybear_poseidon2_24();
 
         // first, encode the message and the epoch as field elements
-        let message_fe = encode_message::<MSG_LEN_FE>(message);
-        let epoch_fe = encode_epoch::<TWEAK_LEN_FE>(epoch);
+        let message_fe = encode_message::<F, MSG_LEN_FE>(message);
+        let epoch_fe = encode_epoch::<F, TWEAK_LEN_FE>(epoch);
 
         // now, we hash randomness, parameters, epoch, message using PoseidonCompress
         let combined_input_vec: Vec<F> = randomness
@@ -168,10 +175,10 @@ where
             .copied()
             .collect();
 
-        let hash_fe = poseidon_compress::<_, 24, HASH_LEN_FE>(&perm, &combined_input_vec);
+        let hash_fe = poseidon_compress::<_, _, 24, HASH_LEN_FE>(&perm, &combined_input_vec);
 
         // decode field elements into chunks and return them
-        decode_to_chunks::<DIMENSION, BASE, HASH_LEN_FE>(&hash_fe).to_vec()
+        decode_to_chunks::<F, DIMENSION, BASE, HASH_LEN_FE>(&hash_fe).to_vec()
     }
 
     #[cfg(test)]
@@ -233,6 +240,8 @@ pub type PoseidonMessageHashW1 = PoseidonMessageHash<5, 5, 5, 163, 2, 2, 9>;
 mod tests {
     use super::*;
     use num_traits::Zero;
+    use p3_field::PrimeCharacteristicRing;
+    use p3_field::PrimeField;
     use rand::Rng;
     use std::collections::HashMap;
 
@@ -310,7 +319,7 @@ mod tests {
             F::from_u128(((&epoch_bigint / (&p * &p * &p)) % &p).try_into().unwrap()),
         ];
 
-        let result = encode_epoch::<4>(epoch);
+        let result = encode_epoch::<F, 4>(epoch);
         assert_eq!(result, expected);
     }
 
@@ -329,7 +338,7 @@ mod tests {
             F::from_u64(((&epoch_bigint / (&p * &p * &p)) % &p).try_into().unwrap()),
         ];
 
-        let result = encode_epoch::<4>(epoch);
+        let result = encode_epoch::<F, 4>(epoch);
         assert_eq!(result, expected);
     }
 
@@ -348,7 +357,7 @@ mod tests {
             F::from_u128(((&epoch_bigint / (&p * &p * &p)) % &p).try_into().unwrap()),
         ];
 
-        let result = encode_epoch::<4>(epoch);
+        let result = encode_epoch::<F, 4>(epoch);
         assert_eq!(result, expected);
     }
 
@@ -363,7 +372,7 @@ mod tests {
 
         for _ in 0..10_000 {
             let epoch: u32 = rng.random();
-            let encoding = encode_epoch::<4>(epoch);
+            let encoding = encode_epoch::<F, 4>(epoch);
             if let Some(prev_epoch) = map.insert(encoding, epoch) {
                 assert_eq!(
                     prev_epoch, epoch,
@@ -382,7 +391,7 @@ mod tests {
         // Expected = 9 zeros, as 9 * 31 >= 8 * 32
         let expected = [F::ZERO; 9];
 
-        let computed = super::encode_message::<9>(&message);
+        let computed = super::encode_message::<F, 9>(&message);
         assert_eq!(computed, expected);
     }
 
@@ -436,7 +445,7 @@ mod tests {
             ),
         ];
 
-        let computed = super::encode_message::<9>(&message);
+        let computed = super::encode_message::<F, 9>(&message);
         assert_eq!(computed, expected);
     }
 
@@ -493,7 +502,7 @@ mod tests {
             ),
         ];
 
-        let computed = super::encode_message::<9>(&message);
+        let computed = super::encode_message::<F, 9>(&message);
         assert_eq!(computed, expected);
     }
 
@@ -504,7 +513,7 @@ mod tests {
 
         // Should decode to all zero chunks
         let expected = [0u8; 8];
-        let result = decode_to_chunks::<8, 16, 5>(&field_elements);
+        let result = decode_to_chunks::<F, 8, 16, 5>(&field_elements);
         assert_eq!(result, expected);
     }
 
@@ -531,7 +540,7 @@ mod tests {
             acc /= 16u8;
         }
 
-        let result = decode_to_chunks::<4, 16, 2>(&input);
+        let result = decode_to_chunks::<F, 4, 16, 2>(&input);
         assert_eq!(result, expected);
     }
 
@@ -564,7 +573,7 @@ mod tests {
             acc /= 256u32;
         }
 
-        let result = decode_to_chunks::<8, 256, 3>(&input);
+        let result = decode_to_chunks::<F, 8, 256, 3>(&input);
         assert_eq!(result, expected);
     }
 
@@ -588,7 +597,7 @@ mod tests {
         }
 
         // Decode to chunks
-        let chunks = decode_to_chunks::<DIMENSION, BASE, HASH_LEN_FE>(&input_field_elements);
+        let chunks = decode_to_chunks::<F, DIMENSION, BASE, HASH_LEN_FE>(&input_field_elements);
 
         // Assert that each chunk is between 0 and BASE - 1
         let base = BigUint::from(BASE);

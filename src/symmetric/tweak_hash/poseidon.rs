@@ -33,7 +33,10 @@ pub enum PoseidonTweak {
 }
 
 impl PoseidonTweak {
-    fn to_field_elements<const TWEAK_LEN: usize>(&self) -> [F; TWEAK_LEN] {
+    fn to_field_elements<F, const TWEAK_LEN: usize>(&self) -> [F; TWEAK_LEN]
+    where
+        F: PrimeField64,
+    {
         // We first represent the entire tweak as one big integer
         let mut acc = match self {
             Self::TreeTweak {
@@ -91,11 +94,12 @@ impl PoseidonTweak {
 /// - If `input.len() < OUT_LEN`
 /// - If `OUT_LEN > WIDTH`
 #[must_use]
-pub(crate) fn poseidon_compress<P, const WIDTH: usize, const OUT_LEN: usize>(
+pub(crate) fn poseidon_compress<F, P, const WIDTH: usize, const OUT_LEN: usize>(
     perm: &P,
     input: &[F],
 ) -> [F; OUT_LEN]
 where
+    F: PrimeField64,
     P: Permutation<[F; WIDTH]>,
 {
     assert!(
@@ -133,11 +137,12 @@ where
 /// - As this function operates on constants, its output can be **precomputed**
 ///   for significant performance gains, especially within a circuit.
 /// - If generalization is ever needed, a more generic and slower version should be used.
-fn poseidon_safe_domain_separator<P, const WIDTH: usize, const OUT_LEN: usize>(
+fn poseidon_safe_domain_separator<F, P, const WIDTH: usize, const OUT_LEN: usize>(
     perm: &P,
     params: &[u32; DOMAIN_PARAMETERS_LENGTH],
 ) -> [F; OUT_LEN]
 where
+    F: PrimeField64,
     P: Permutation<[F; WIDTH]>,
 {
     // Combine params into a single number in base 2^32
@@ -159,7 +164,7 @@ where
         F::from_u128(digit)
     });
 
-    poseidon_compress::<_, WIDTH, OUT_LEN>(perm, &input)
+    poseidon_compress::<_, _, WIDTH, OUT_LEN>(perm, &input)
 }
 
 /// Poseidon Sponge Hash Function.
@@ -180,12 +185,13 @@ where
 ///
 /// Panics:
 /// - If `capacity_value.len() >= WIDTH`
-fn poseidon_sponge<P, const WIDTH: usize, const OUT_LEN: usize>(
+fn poseidon_sponge<F, P, const WIDTH: usize, const OUT_LEN: usize>(
     perm: &P,
     capacity_value: &[F],
     input: &[F],
 ) -> [F; OUT_LEN]
 where
+    F: PrimeField64,
     P: Permutation<[F; WIDTH]>,
 {
     // The capacity length must be strictly smaller than the width to have a non-zero rate.
@@ -288,7 +294,7 @@ where
         // (2) hashing two siblings in the tree. We use compression mode.
         // (3) hashing a long vector of chain ends. We use sponge mode.
 
-        let tweak_fe = tweak.to_field_elements::<TWEAK_LEN>();
+        let tweak_fe = tweak.to_field_elements::<F, TWEAK_LEN>();
 
         match message {
             [single] => {
@@ -300,7 +306,7 @@ where
                     .chain(single.iter())
                     .copied()
                     .collect();
-                poseidon_compress::<_, CHAIN_COMPRESSION_WIDTH, HASH_LEN>(&perm, &combined_input)
+                poseidon_compress::<F, _, CHAIN_COMPRESSION_WIDTH, HASH_LEN>(&perm, &combined_input)
             }
 
             [left, right] => {
@@ -313,7 +319,7 @@ where
                     .chain(right.iter())
                     .copied()
                     .collect();
-                poseidon_compress::<_, MERGE_COMPRESSION_WIDTH, HASH_LEN>(&perm, &combined_input)
+                poseidon_compress::<F, _, MERGE_COMPRESSION_WIDTH, HASH_LEN>(&perm, &combined_input)
             }
 
             _ if message.len() > 2 => {
@@ -333,10 +339,10 @@ where
                     HASH_LEN as u32,
                 ];
                 let capacity_value =
-                    poseidon_safe_domain_separator::<_, MERGE_COMPRESSION_WIDTH, CAPACITY>(
+                    poseidon_safe_domain_separator::<F, _, MERGE_COMPRESSION_WIDTH, CAPACITY>(
                         &perm, &lengths,
                     );
-                poseidon_sponge::<_, MERGE_COMPRESSION_WIDTH, HASH_LEN>(
+                poseidon_sponge::<F, _, MERGE_COMPRESSION_WIDTH, HASH_LEN>(
                     &perm,
                     &capacity_value,
                     &combined_input,
@@ -519,7 +525,7 @@ mod tests {
             level,
             pos_in_level,
         };
-        let computed = tweak.to_field_elements::<2>();
+        let computed = tweak.to_field_elements::<F, 2>();
         assert_eq!(computed, expected);
     }
 
@@ -552,7 +558,7 @@ mod tests {
             chain_index,
             pos_in_chain,
         };
-        let computed = tweak.to_field_elements::<2>();
+        let computed = tweak.to_field_elements::<F, 2>();
         assert_eq!(computed, expected);
     }
 
@@ -575,7 +581,7 @@ mod tests {
             level,
             pos_in_level,
         };
-        let computed = tweak.to_field_elements::<2>();
+        let computed = tweak.to_field_elements::<F, 2>();
         assert_eq!(computed, expected);
     }
 
@@ -602,7 +608,7 @@ mod tests {
             chain_index,
             pos_in_chain,
         };
-        let computed = tweak.to_field_elements::<2>();
+        let computed = tweak.to_field_elements::<F, 2>();
         assert_eq!(computed, expected);
     }
 
@@ -622,7 +628,7 @@ mod tests {
                 level,
                 pos_in_level,
             }
-            .to_field_elements::<2>();
+            .to_field_elements::<F, 2>();
 
             if let Some((prev_level, prev_pos_in_level)) =
                 map.insert(tweak_encoding, (level, pos_in_level))
@@ -649,7 +655,7 @@ mod tests {
                 level,
                 pos_in_level,
             }
-            .to_field_elements::<2>();
+            .to_field_elements::<F, 2>();
 
             if let Some(prev_pos_in_level) = map.insert(tweak_encoding, pos_in_level) {
                 assert_eq!(
@@ -669,7 +675,7 @@ mod tests {
                 level,
                 pos_in_level,
             }
-            .to_field_elements::<2>();
+            .to_field_elements::<F, 2>();
 
             if let Some(prev_level) = map.insert(tweak_encoding, level) {
                 assert_eq!(
@@ -702,7 +708,7 @@ mod tests {
                 chain_index,
                 pos_in_chain,
             }
-            .to_field_elements::<2>();
+            .to_field_elements::<F, 2>();
 
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
@@ -726,7 +732,7 @@ mod tests {
                 chain_index,
                 pos_in_chain,
             }
-            .to_field_elements::<2>();
+            .to_field_elements::<F, 2>();
 
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
@@ -750,7 +756,7 @@ mod tests {
                 chain_index,
                 pos_in_chain,
             }
-            .to_field_elements::<2>();
+            .to_field_elements::<F, 2>();
 
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
@@ -774,7 +780,7 @@ mod tests {
                 chain_index,
                 pos_in_chain,
             }
-            .to_field_elements::<2>();
+            .to_field_elements::<F, 2>();
 
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(

@@ -329,6 +329,8 @@ pub mod instantiations_sha;
 
 #[cfg(test)]
 mod tests {
+    use p3_baby_bear::BabyBear;
+
     use crate::{
         inc_encoding::{basic_winternitz::WinternitzEncoding, target_sum::TargetSumEncoding},
         signature::test_templates::test_signature_scheme_correctness,
@@ -369,7 +371,7 @@ mod tests {
     #[test]
     pub fn test_winternitz_poseidon() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShakePRFtoF<7>;
+        type PRF = ShakePRFtoF<BabyBear, 7>;
         type TH = PoseidonTweakW1L5;
         type MH = PoseidonMessageHashW1;
         const CHUNK_SIZE: usize = 1;
@@ -418,7 +420,7 @@ mod tests {
     #[test]
     pub fn test_target_sum_poseidon() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShakePRFtoF<7>;
+        type PRF = ShakePRFtoF<BabyBear, 7>;
         type TH = PoseidonTweakW1L5;
         type MH = PoseidonMessageHashW1;
         const BASE: usize = MH::BASE;

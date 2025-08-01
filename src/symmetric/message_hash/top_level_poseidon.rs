@@ -141,8 +141,8 @@ where
         let perm = default_babybear_poseidon2_24();
 
         // first, encode the message and the epoch as field elements
-        let message_fe = encode_message::<MSG_LEN_FE>(message);
-        let epoch_fe = encode_epoch::<TWEAK_LEN_FE>(epoch);
+        let message_fe = encode_message::<F, MSG_LEN_FE>(message);
+        let epoch_fe = encode_epoch::<F, TWEAK_LEN_FE>(epoch);
 
         // now, invoke Poseidon a few times, to get field elements
         let mut pos_outputs = [F::ZERO; POS_OUTPUT_LEN_FE];
@@ -161,7 +161,7 @@ where
                 .collect();
 
             let iteration_pos_output =
-                poseidon_compress::<_, 24, POS_OUTPUT_LEN_PER_INV_FE>(&perm, &combined_input);
+                poseidon_compress::<_, _, 24, POS_OUTPUT_LEN_PER_INV_FE>(&perm, &combined_input);
 
             pos_outputs[i * POS_OUTPUT_LEN_PER_INV_FE..(i + 1) * POS_OUTPUT_LEN_PER_INV_FE]
                 .copy_from_slice(&iteration_pos_output);
