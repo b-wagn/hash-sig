@@ -209,7 +209,9 @@ where
 
         // if we have not found a valid codeword, return an error
         if x.is_none() {
-            return Err(SigningError::UnluckyFailure);
+            return Err(SigningError::EncodingAttemptsExceeded {
+                attempts: max_tries,
+            });
         }
 
         // otherwise, unwrap x and rho

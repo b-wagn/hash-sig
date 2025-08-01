@@ -37,6 +37,7 @@ rayon = "1.10.0"
 num-traits = "0.2.19"
 dashmap = "6.1.0"
 serde = { version = "1.0", features = ["derive", "alloc"] }
+thiserror = "2.0"
 
 p3-field = { git = "https://github.com/Plonky3/Plonky3.git", rev = "d0c4a36" }
 p3-baby-bear = { git = "https://github.com/Plonky3/Plonky3.git", rev = "d0c4a36" }

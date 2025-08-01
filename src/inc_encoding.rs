@@ -1,10 +1,17 @@
 use rand::Rng;
 use serde::{Serialize, de::DeserializeOwned};
+use target_sum::TargetSumError;
+use thiserror::Error;
 
 use crate::MESSAGE_LENGTH;
 
-/// Error during encoding
-pub type EncodingError = ();
+/// Error during the encoding process.
+#[derive(Debug, Error)]
+pub enum EncodingError {
+    /// An error originating from the target sum encoding scheme.
+    #[error(transparent)]
+    TargetSum(#[from] TargetSumError),
+}
 
 /// Trait to model incomparable encoding schemes.
 /// These schemes allow to encode a message into a codeword.
@@ -40,7 +47,6 @@ pub trait IncomparableEncoding {
     /// It could happen that this fails. Otherwise,
     /// implementations must guarantee that the
     /// result is indeed a valid codeword.
-    #[allow(clippy::result_unit_err)]
     fn encode(
         parameter: &Self::Parameter,
         message: &[u8; MESSAGE_LENGTH],

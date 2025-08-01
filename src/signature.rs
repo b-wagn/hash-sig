@@ -1,13 +1,15 @@
+use crate::MESSAGE_LENGTH;
 use rand::Rng;
 use serde::{Serialize, de::DeserializeOwned};
+use thiserror::Error;
 
-use crate::MESSAGE_LENGTH;
-
-/// Error enum for signatures
-#[derive(Debug)]
+/// Error enum for the signing process.
+#[derive(Debug, Error)]
 pub enum SigningError {
-    InvalidMessageLength,
-    UnluckyFailure,
+    /// Occurs when the probabilistic message encoding fails to produce a valid codeword
+    /// after the maximum number of attempts.
+    #[error("Failed to encode message after {attempts} attempts.")]
+    EncodingAttemptsExceeded { attempts: usize },
 }
 
 /// Trait to model a synchronized signature scheme.
