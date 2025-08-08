@@ -1,5 +1,7 @@
 /// Instantiations with Lifetime 2^18
 pub mod lifetime_2_to_the_18 {
+    use p3_baby_bear::BabyBear;
+
     use crate::{
         inc_encoding::target_sum::TargetSumEncoding,
         signature::generalized_xmss::GeneralizedXMSSSignatureScheme,
@@ -40,7 +42,7 @@ pub mod lifetime_2_to_the_18 {
         RAND_LEN_FE,
     >;
     type TH = PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, DIMENSION>;
-    type PRF = ShakePRFtoF<HASH_LEN_FE>;
+    type PRF = ShakePRFtoF<BabyBear, HASH_LEN_FE>;
     type IE = TargetSumEncoding<MH, TARGET_SUM>;
 
     pub type SIGTopLevelTargetSumLifetime18Dim64Base8 =
@@ -84,6 +86,8 @@ pub mod lifetime_2_to_the_32 {
     /// Instantiation optimized for verification hashing
     pub mod hashing_optimized {
 
+        use p3_baby_bear::BabyBear;
+
         use crate::{
             inc_encoding::target_sum::TargetSumEncoding,
             signature::generalized_xmss::GeneralizedXMSSSignatureScheme,
@@ -125,7 +129,7 @@ pub mod lifetime_2_to_the_32 {
             RAND_LEN_FE,
         >;
         type TH = PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, DIMENSION>;
-        type PRF = ShakePRFtoF<HASH_LEN_FE>;
+        type PRF = ShakePRFtoF<BabyBear, HASH_LEN_FE>;
         type IE = TargetSumEncoding<MH, TARGET_SUM>;
 
         pub type SIGTopLevelTargetSumLifetime32Dim64Base8 =
@@ -164,6 +168,8 @@ pub mod lifetime_2_to_the_32 {
 
     /// Instantiation that provides a trade-off between hashing and size
     pub mod tradeoff {
+
+        use p3_baby_bear::BabyBear;
 
         use crate::{
             inc_encoding::target_sum::TargetSumEncoding,
@@ -206,7 +212,7 @@ pub mod lifetime_2_to_the_32 {
             RAND_LEN_FE,
         >;
         type TH = PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, DIMENSION>;
-        type PRF = ShakePRFtoF<HASH_LEN_FE>;
+        type PRF = ShakePRFtoF<BabyBear, HASH_LEN_FE>;
         type IE = TargetSumEncoding<MH, TARGET_SUM>;
 
         pub type SIGTopLevelTargetSumLifetime32Dim48Base10 =
@@ -245,6 +251,8 @@ pub mod lifetime_2_to_the_32 {
 
     /// Instantiation optimized for signature size
     pub mod size_optimized {
+        use p3_baby_bear::BabyBear;
+
         use crate::{
             inc_encoding::target_sum::TargetSumEncoding,
             signature::generalized_xmss::GeneralizedXMSSSignatureScheme,
@@ -286,7 +294,7 @@ pub mod lifetime_2_to_the_32 {
             RAND_LEN_FE,
         >;
         type TH = PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, DIMENSION>;
-        type PRF = ShakePRFtoF<HASH_LEN_FE>;
+        type PRF = ShakePRFtoF<BabyBear, HASH_LEN_FE>;
         type IE = TargetSumEncoding<MH, TARGET_SUM>;
 
         pub type SIGTopLevelTargetSumLifetime32Dim32Base26 =
