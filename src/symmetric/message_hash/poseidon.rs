@@ -1,5 +1,4 @@
 use num_bigint::BigUint;
-use p3_baby_bear::BabyBear;
 use p3_baby_bear::default_babybear_poseidon2_24;
 use p3_field::PrimeCharacteristicRing;
 use p3_field::PrimeField;
@@ -7,11 +6,10 @@ use p3_field::PrimeField64;
 use serde::{Serialize, de::DeserializeOwned};
 
 use super::MessageHash;
+use crate::F;
 use crate::MESSAGE_LENGTH;
 use crate::TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
 use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
-
-type F = BabyBear;
 
 /// Function to encode a message as an array of field elements
 pub(crate) fn encode_message<const MSG_LEN_FE: usize>(

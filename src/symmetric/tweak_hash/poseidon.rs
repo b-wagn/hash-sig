@@ -1,4 +1,3 @@
-use p3_baby_bear::BabyBear;
 use p3_baby_bear::default_babybear_poseidon2_16;
 use p3_baby_bear::default_babybear_poseidon2_24;
 use p3_field::PrimeCharacteristicRing;
@@ -6,12 +5,11 @@ use p3_field::PrimeField64;
 use p3_symmetric::Permutation;
 use serde::{Serialize, de::DeserializeOwned};
 
+use crate::F;
 use crate::TWEAK_SEPARATOR_FOR_CHAIN_HASH;
 use crate::TWEAK_SEPARATOR_FOR_TREE_HASH;
 
 use super::TweakableHash;
-
-type F = BabyBear;
 
 const DOMAIN_PARAMETERS_LENGTH: usize = 4;
 /// The state width for compressing a single hash in a chain.
