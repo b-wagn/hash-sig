@@ -5,6 +5,32 @@ The code has not been audited and is not meant to be used in production. It is a
 
 *Note: Rust version >= 1.87 is required.*
 
+## Signature Interface
+
+If you want to use this library, the main interface is that of a *(synchronized) signature scheme*, which is defined in the [Signature trait](https://github.com/b-wagn/hash-sig/blob/main/src/signature.rs). Here is a summary:
+- A function `key_gen` to generate keys.
+- A function `sign` to sign messages using the secret key with respect to an epoch.
+- A function `verify` to verify signatures for a given message, public key, and epoch.
+
+Importantly, each pair of secret key and epoch must not be used twice as input to `sign`.
+
+For a signature scheme `T: SignatureScheme`, an example to use this interface may be as follows:
+```rust
+
+// generate keys (assume we have an rng)
+let (pk, sk) = T::key_gen(&mut rng, 0, T::LIFETIME as usize);
+
+// sign a random message for a random epoch
+let message = rng.random();
+let epoch = rng.random_range(0..activation_duration) as u32;
+let sig = S::sign(&mut rng, &sk, epoch, &message);
+
+// verify the signature
+let is_valid = S::verify(&pk, epoch, &message, &sig);
+```
+
+See also function `test_signature_scheme_correctness` in [this file](https://github.com/b-wagn/hash-sig/blob/main/src/signature.rs).
+
 ## Schemes
 The code implements a generic framework from [this paper](https://eprint.iacr.org/2025/055.pdf), which builds XMSS-like hash-based signatures from a primitive called incomparable encodings.
 Hardcoded instantiations of this generic framework (using SHA3 or Poseidon2) are defined in `hashsig::signature::generalized_xmss`.
