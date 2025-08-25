@@ -59,3 +59,4 @@ with-gen-benches-poseidon-top-level = []
 [[bench]]
 name = "benchmark"
 harness = false
+path = "benches/benchmark.rs"
