@@ -30,10 +30,14 @@ static POSEIDON2_16: OnceLock<Poseidon2KoalaBear<16>> = OnceLock::new();
 
 /// Poseidon2 permutation (width 24)
 pub(crate) fn poseidon2_24() -> Poseidon2KoalaBear<24> {
-    POSEIDON2_24.get_or_init(default_koalabear_poseidon2_24).clone()
+    POSEIDON2_24
+        .get_or_init(default_koalabear_poseidon2_24)
+        .clone()
 }
 
 /// Poseidon2 permutation (width 16)
 pub(crate) fn poseidon2_16() -> Poseidon2KoalaBear<16> {
-    POSEIDON2_16.get_or_init(default_koalabear_poseidon2_16).clone()
+    POSEIDON2_16
+        .get_or_init(default_koalabear_poseidon2_16)
+        .clone()
 }

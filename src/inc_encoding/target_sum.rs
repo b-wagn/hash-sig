@@ -63,15 +63,24 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
         if sum as usize == TARGET_SUM {
             Ok(chunks)
         } else {
-            Err(TargetSumError::Mismatch { expected: TARGET_SUM, actual: sum as usize })
+            Err(TargetSumError::Mismatch {
+                expected: TARGET_SUM,
+                actual: sum as usize,
+            })
         }
     }
 
     #[cfg(test)]
     fn internal_consistency_check() {
         // base and dimension must not be too large
-        assert!(Self::BASE <= 1 << 8, "Target Sum Encoding: Base must be at most 2^8");
-        assert!(Self::DIMENSION <= 1 << 8, "Target Sum Encoding: Dimension must be at most 2^8");
+        assert!(
+            Self::BASE <= 1 << 8,
+            "Target Sum Encoding: Base must be at most 2^8"
+        );
+        assert!(
+            Self::DIMENSION <= 1 << 8,
+            "Target Sum Encoding: Dimension must be at most 2^8"
+        );
 
         // also check internal consistency of message hash
         MH::internal_consistency_check();

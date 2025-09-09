@@ -172,12 +172,21 @@ mod test_templates {
         let signature = T::sign(&mut rng, &sk, epoch, &message);
 
         // Ensure signing was successful
-        assert!(signature.is_ok(), "Signing failed: {:?}. Epoch was {:?}", signature.err(), epoch);
+        assert!(
+            signature.is_ok(),
+            "Signing failed: {:?}. Epoch was {:?}",
+            signature.err(),
+            epoch
+        );
 
         // Verify the signature
         let signature = signature.unwrap();
         let is_valid = T::verify(&pk, epoch, &message, &signature);
-        assert!(is_valid, "Signature verification failed. . Epoch was {:?}", epoch);
+        assert!(
+            is_valid,
+            "Signature verification failed. . Epoch was {:?}",
+            epoch
+        );
 
         test_bincode_round_trip_consistency(&pk);
         test_bincode_round_trip_consistency(&sk);

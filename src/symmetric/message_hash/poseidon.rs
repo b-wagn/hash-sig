@@ -183,8 +183,14 @@ where
         assert!(HASH_LEN_FE <= 24, "Poseidon of width 24 is not enough");
 
         // Base and dimension check
-        assert!(Self::BASE <= 1 << 8, "Poseidon Message Hash: Base must be at most 2^8");
-        assert!(Self::DIMENSION <= 1 << 8, "Poseidon Message Hash: Dimension must be at most 2^8");
+        assert!(
+            Self::BASE <= 1 << 8,
+            "Poseidon Message Hash: Base must be at most 2^8"
+        );
+        assert!(
+            Self::DIMENSION <= 1 << 8,
+            "Poseidon Message Hash: Dimension must be at most 2^8"
+        );
 
         // how many bits can be represented by one field element
         let bits_per_fe = f64::floor(f64::log2(F::ORDER_U64 as f64));
@@ -276,7 +282,11 @@ mod tests {
         }
 
         // If all K trials resulted in identical values, fail the test
-        assert!(all_same_count < K, "rand generated identical elements in all {} trials", K);
+        assert!(
+            all_same_count < K,
+            "rand generated identical elements in all {} trials",
+            K
+        );
     }
 
     #[test]
@@ -392,14 +402,30 @@ mod tests {
             F::from_u128((&message_bigint % &p).try_into().unwrap()),
             F::from_u128(((&message_bigint / &p) % &p).try_into().unwrap()),
             F::from_u128(((&message_bigint / (&p * &p)) % &p).try_into().unwrap()),
-            F::from_u128(((&message_bigint / (&p * &p * &p)) % &p).try_into().unwrap()),
-            F::from_u128(((&message_bigint / (&p * &p * &p * &p)) % &p).try_into().unwrap()),
-            F::from_u128(((&message_bigint / (&p * &p * &p * &p * &p)) % &p).try_into().unwrap()),
             F::from_u128(
-                ((&message_bigint / (&p * &p * &p * &p * &p * &p)) % &p).try_into().unwrap(),
+                ((&message_bigint / (&p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
             ),
             F::from_u128(
-                ((&message_bigint / (&p * &p * &p * &p * &p * &p * &p)) % &p).try_into().unwrap(),
+                ((&message_bigint / (&p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
             ),
             F::from_u128(
                 ((&message_bigint / (&p * &p * &p * &p * &p * &p * &p * &p)) % &p)
@@ -433,14 +459,30 @@ mod tests {
             F::from_u128((&message_bigint % &p).try_into().unwrap()),
             F::from_u128(((&message_bigint / &p) % &p).try_into().unwrap()),
             F::from_u128(((&message_bigint / (&p * &p)) % &p).try_into().unwrap()),
-            F::from_u128(((&message_bigint / (&p * &p * &p)) % &p).try_into().unwrap()),
-            F::from_u128(((&message_bigint / (&p * &p * &p * &p)) % &p).try_into().unwrap()),
-            F::from_u128(((&message_bigint / (&p * &p * &p * &p * &p)) % &p).try_into().unwrap()),
             F::from_u128(
-                ((&message_bigint / (&p * &p * &p * &p * &p * &p)) % &p).try_into().unwrap(),
+                ((&message_bigint / (&p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
             ),
             F::from_u128(
-                ((&message_bigint / (&p * &p * &p * &p * &p * &p * &p)) % &p).try_into().unwrap(),
+                ((&message_bigint / (&p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
+            ),
+            F::from_u128(
+                ((&message_bigint / (&p * &p * &p * &p * &p * &p * &p)) % &p)
+                    .try_into()
+                    .unwrap(),
             ),
             F::from_u128(
                 ((&message_bigint / (&p * &p * &p * &p * &p * &p * &p * &p)) % &p)
@@ -549,7 +591,10 @@ mod tests {
         // Assert that each chunk is between 0 and BASE - 1
         let base = BigUint::from(BASE);
         for &chunk in &chunks {
-            assert!(BigUint::from(chunk) < base, "One of the chunks was too large.");
+            assert!(
+                BigUint::from(chunk) < base,
+                "One of the chunks was too large."
+            );
         }
 
         // Reconstruct bigint from chunks using little-endian base-(BASE)

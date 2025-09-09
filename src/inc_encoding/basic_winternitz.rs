@@ -57,7 +57,10 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
         let mut chunks_message = MH::apply(parameter, epoch, randomness, message);
 
         // now, we compute the checksum
-        let checksum: u64 = chunks_message.iter().map(|&x| Self::BASE as u64 - 1 - x as u64).sum();
+        let checksum: u64 = chunks_message
+            .iter()
+            .map(|&x| Self::BASE as u64 - 1 - x as u64)
+            .sum();
 
         // we split the checksum into chunks, in little-endian
         let checksum_bytes = checksum.to_le_bytes();
@@ -81,8 +84,14 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
         );
 
         // base and dimension must not be too large
-        assert!(CHUNK_SIZE <= 8, "Winternitz Encoding: Base must be at most 2^8");
-        assert!(Self::DIMENSION <= 1 << 8, "Winternitz Encoding: Dimension must be at most 2^8");
+        assert!(
+            CHUNK_SIZE <= 8,
+            "Winternitz Encoding: Base must be at most 2^8"
+        );
+        assert!(
+            Self::DIMENSION <= 1 << 8,
+            "Winternitz Encoding: Dimension must be at most 2^8"
+        );
 
         // chunk size and base of MH must be consistent
         assert!(

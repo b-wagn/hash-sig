@@ -70,8 +70,12 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
             let epoch = rng.random_range(0..S::LIFETIME) as u32;
 
             // Benchmark signing
-            let _ =
-                S::sign(black_box(&mut rng), black_box(&sk), black_box(epoch), black_box(&message));
+            let _ = S::sign(
+                black_box(&mut rng),
+                black_box(&sk),
+                black_box(epoch),
+                black_box(&message),
+            );
         });
     });
 
@@ -92,7 +96,12 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
             // Randomly pick a precomputed signature to verify
             let (epoch, message, signature) =
                 black_box(&precomputed[rng.random_range(0..precomputed.len())]);
-            let _ = S::verify(black_box(&pk), *epoch, black_box(message), black_box(signature));
+            let _ = S::verify(
+                black_box(&pk),
+                *epoch,
+                black_box(message),
+                black_box(signature),
+            );
         });
     });
 

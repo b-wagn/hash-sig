@@ -73,7 +73,10 @@ pub fn bytes_to_chunks(bytes: &[u8], chunk_size: usize) -> Vec<u8> {
     // Only the chunk sizes 1, 2, 4, or 8 are valid.
     //
     // This avoids invalid bit manipulations and guarantees predictable output length.
-    assert!(matches!(chunk_size, 1 | 2 | 4 | 8), "chunk_size must be 1, 2, 4, or 8");
+    assert!(
+        matches!(chunk_size, 1 | 2 | 4 | 8),
+        "chunk_size must be 1, 2, 4, or 8"
+    );
 
     // Calculate how many chunks each byte will produce and preallocate exactly.
     let chunks_per_byte = 8 / chunk_size;

@@ -146,8 +146,13 @@ where
             .collect::<Vec<_>>();
 
         // now build a Merkle tree on top of the hashes of chain ends / public keys
-        let tree =
-            HashTree::new(rng, LOG_LIFETIME, activation_epoch, &parameter, chain_ends_hashes);
+        let tree = HashTree::new(
+            rng,
+            LOG_LIFETIME,
+            activation_epoch,
+            &parameter,
+            chain_ends_hashes,
+        );
         let root = tree.root();
 
         // assemble public key and secret key
@@ -204,7 +209,9 @@ where
 
         // if we have not found a valid codeword, return an error
         if x.is_none() {
-            return Err(SigningError::EncodingAttemptsExceeded { attempts: max_tries });
+            return Err(SigningError::EncodingAttemptsExceeded {
+                attempts: max_tries,
+            });
         }
 
         // otherwise, unwrap x and rho
@@ -214,7 +221,10 @@ where
         // we will include rho in the signature, and
         // we use x to determine how far the signer walks in the chains
         let num_chains = IE::DIMENSION;
-        assert!(x.len() == num_chains, "Encoding is broken: returned too many or too few chunks.");
+        assert!(
+            x.len() == num_chains,
+            "Encoding is broken: returned too many or too few chunks."
+        );
 
         // In parallel, compute the hash values for each chain based on the codeword `x`.
         let hashes = (0..num_chains)
@@ -238,7 +248,10 @@ where
         message: &[u8; MESSAGE_LENGTH],
         sig: &Self::Signature,
     ) -> bool {
-        assert!((epoch as u64) < Self::LIFETIME, "Generalized XMSS - Verify: Epoch too large.");
+        assert!(
+            (epoch as u64) < Self::LIFETIME,
+            "Generalized XMSS - Verify: Epoch too large."
+        );
 
         // first get back the codeword and make sure
         // encoding succeeded with the given randomness.
@@ -250,7 +263,10 @@ where
         // from the hashes by walking hash chains.
         let chain_length = IE::BASE;
         let num_chains = IE::DIMENSION;
-        assert!(x.len() == num_chains, "Encoding is broken: returned too many or too few chunks.");
+        assert!(
+            x.len() == num_chains,
+            "Encoding is broken: returned too many or too few chunks."
+        );
         let mut chain_ends = Vec::with_capacity(num_chains);
         for (chain_index, xi) in x.iter().enumerate() {
             // If the signer has already walked x[i] steps, then we need
@@ -272,7 +288,13 @@ where
 
         // this set of chain ends should be a leaf in the Merkle tree
         // we verify that by checking the Merkle authentication path
-        hash_tree_verify(&pk.parameter, &pk.root, epoch, chain_ends.as_slice(), &sig.path)
+        hash_tree_verify(
+            &pk.parameter,
+            &pk.root,
+            epoch,
+            chain_ends.as_slice(),
+            &sig.path,
+        )
     }
 
     #[cfg(test)]

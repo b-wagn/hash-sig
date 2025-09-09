@@ -54,7 +54,9 @@ struct AllLayerData<'a>(Ref<'a, usize, AllLayerInfoForBase>);
 impl AllLayerData<'_> {
     fn new(w: usize) -> Self {
         // Atomically get or compute the layer info for the given base `w`.
-        ALL_LAYER_INFO_OF_BASE.entry(w).or_insert_with(|| prepare_layer_info(w));
+        ALL_LAYER_INFO_OF_BASE
+            .entry(w)
+            .or_insert_with(|| prepare_layer_info(w));
         Self(ALL_LAYER_INFO_OF_BASE.get(&w).unwrap())
     }
 
@@ -87,7 +89,10 @@ fn prepare_layer_info(w: usize) -> AllLayerInfoForBase {
     let dim1_sizes = vec![BigUint::one(); w];
     // Compute prefix sums for v=1, which is just [1, 2, 3, ... w].
     let dim1_prefix_sums = (1..=w).map(BigUint::from).collect();
-    all_info[1] = LayerInfo { sizes: dim1_sizes, prefix_sums: dim1_prefix_sums };
+    all_info[1] = LayerInfo {
+        sizes: dim1_sizes,
+        prefix_sums: dim1_prefix_sums,
+    };
 
     // Inductive step: compute for dimensions v = 2 to v_max
     for v in 2..=v_max {
@@ -122,7 +127,10 @@ fn prepare_layer_info(w: usize) -> AllLayerInfoForBase {
         }
 
         // Store both sizes and prefix sums in our final structure.
-        all_info[v] = LayerInfo { sizes: current_sizes, prefix_sums: current_prefix_sums };
+        all_info[v] = LayerInfo {
+            sizes: current_sizes,
+            prefix_sums: current_prefix_sums,
+        };
     }
 
     all_info
@@ -310,7 +318,8 @@ mod tests {
                     sum -= part;
                 }
             }
-            sum.to_biguint().expect("nb result negative — check parameters")
+            sum.to_biguint()
+                .expect("nb result negative — check parameters")
         }
 
         let v_max = MAX_DIMENSION;

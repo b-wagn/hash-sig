@@ -44,7 +44,10 @@ where
 
     #[cfg(test)]
     fn internal_consistency_check() {
-        assert!(OUTPUT_LENGTH < 256 / 8, "SHA PRF: Output length must be less than 256 bit");
+        assert!(
+            OUTPUT_LENGTH < 256 / 8,
+            "SHA PRF: Output length must be less than 256 bit"
+        );
     }
 }
 
@@ -70,6 +73,10 @@ mod tests {
             }
         }
 
-        assert!(all_same_count < K, "PRF key had identical bytes in all {} trials", K);
+        assert!(
+            all_same_count < K,
+            "PRF key had identical bytes in all {} trials",
+            K
+        );
     }
 }

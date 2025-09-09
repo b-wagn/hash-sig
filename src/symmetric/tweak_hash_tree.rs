@@ -62,7 +62,10 @@ impl<TH: TweakableHash> HashTreeLayer<TH> {
         }
 
         // Return the padded layer with the corrected start index.
-        Self { start_index: actual_start_index, nodes: out }
+        Self {
+            start_index: actual_start_index,
+            nodes: out,
+        }
     }
 }
 
@@ -156,7 +159,11 @@ where
                     // Parent index in this layer
                     let parent_pos = (parent_start + i) as u32;
                     // Hash children into their parent using the tweak
-                    TH::apply(parameter, &TH::tree_tweak((level as u8) + 1, parent_pos), children)
+                    TH::apply(
+                        parameter,
+                        &TH::tree_tweak((level as u8) + 1, parent_pos),
+                        children,
+                    )
                 })
                 .collect();
 
@@ -171,7 +178,10 @@ where
     /// A root is just an output of the tweakable hash.
     #[must_use]
     pub fn root(&self) -> TH::Domain {
-        self.layers.last().expect("Hash-Tree must have at least one layer").nodes[0]
+        self.layers
+            .last()
+            .expect("Hash-Tree must have at least one layer")
+            .nodes[0]
     }
 
     /// Function to compute the Merkle authentication path
@@ -181,7 +191,10 @@ where
     /// size 1.
     #[must_use]
     pub fn path(&self, position: u32) -> HashTreeOpening<TH> {
-        assert!(!self.layers.is_empty(), "Hash-Tree path: Need at least one layer");
+        assert!(
+            !self.layers.is_empty(),
+            "Hash-Tree path: Need at least one layer"
+        );
         assert!(
             (position as u64) >= (self.layers[0].start_index as u64),
             "Hash-Tree path: Invalid position, position before start index"
@@ -230,7 +243,10 @@ pub fn hash_tree_verify<TH: TweakableHash>(
     let depth = opening.co_path.len();
     let num_leafs: u64 = 1 << depth;
 
-    assert!(depth <= 32, "Hash-Tree verify: Tree depth must be at most 32");
+    assert!(
+        depth <= 32,
+        "Hash-Tree verify: Tree depth must be at most 32"
+    );
 
     assert!(
         (position as u64) < num_leafs,

@@ -207,8 +207,14 @@ where
         );
 
         // Base and dimension check
-        assert!(Self::BASE <= 1 << 8, "Poseidon Message Hash: Base must be at most 2^8");
-        assert!(Self::DIMENSION <= 1 << 8, "Poseidon Message Hash: Dimension must be at most 2^8");
+        assert!(
+            Self::BASE <= 1 << 8,
+            "Poseidon Message Hash: Base must be at most 2^8"
+        );
+        assert!(
+            Self::DIMENSION <= 1 << 8,
+            "Poseidon Message Hash: Dimension must be at most 2^8"
+        );
 
         // How many bits can be represented by one field element
         let bits_per_fe = f64::floor(f64::log2(F::ORDER_U64 as f64));
@@ -268,7 +274,10 @@ mod tests {
         let sum: usize = hash.iter().map(|&x| x as usize).sum();
         let lower_bound = (BASE - 1) * DIMENSION - FINAL_LAYER;
 
-        assert!(sum >= lower_bound, "Output was not in the correct part of the lower bound");
+        assert!(
+            sum >= lower_bound,
+            "Output was not in the correct part of the lower bound"
+        );
     }
 
     proptest! {

@@ -19,20 +19,34 @@ const MERGE_COMPRESSION_WIDTH: usize = 24;
 
 /// Enum to implement tweaks.
 pub enum PoseidonTweak {
-    TreeTweak { level: u8, pos_in_level: u32 },
-    ChainTweak { epoch: u32, chain_index: u8, pos_in_chain: u8 },
+    TreeTweak {
+        level: u8,
+        pos_in_level: u32,
+    },
+    ChainTweak {
+        epoch: u32,
+        chain_index: u8,
+        pos_in_chain: u8,
+    },
 }
 
 impl PoseidonTweak {
     fn to_field_elements<const TWEAK_LEN: usize>(&self) -> [F; TWEAK_LEN] {
         // We first represent the entire tweak as one big integer
         let mut acc = match self {
-            Self::TreeTweak { level, pos_in_level } => {
+            Self::TreeTweak {
+                level,
+                pos_in_level,
+            } => {
                 ((*level as u128) << 40)
                     | ((*pos_in_level as u128) << 8)
                     | (TWEAK_SEPARATOR_FOR_TREE_HASH as u128)
             }
-            Self::ChainTweak { epoch, chain_index, pos_in_chain } => {
+            Self::ChainTweak {
+                epoch,
+                chain_index,
+                pos_in_chain,
+            } => {
                 ((*epoch as u128) << 24)
                     | ((*chain_index as u128) << 16)
                     | ((*pos_in_chain as u128) << 8)
@@ -102,7 +116,9 @@ where
     }
 
     // Truncate and return the first `OUT_LEN` elements of the state.
-    state[..OUT_LEN].try_into().expect("OUT_LEN is larger than permutation width")
+    state[..OUT_LEN]
+        .try_into()
+        .expect("OUT_LEN is larger than permutation width")
 }
 
 /// Computes a Poseidon-based domain separator by compressing an array of `u32`
@@ -171,7 +187,10 @@ where
 {
     // The capacity length must be strictly smaller than the width to have a non-zero rate.
     // This check prevents a panic from subtraction underflow when calculating the rate.
-    assert!(capacity_value.len() < WIDTH, "Capacity length must be smaller than the state width.");
+    assert!(
+        capacity_value.len() < WIDTH,
+        "Capacity length must be smaller than the state width."
+    );
     let rate = WIDTH - capacity_value.len();
 
     let extra_elements = (rate - (input.len() % rate)) % rate;
@@ -242,11 +261,18 @@ where
     }
 
     fn tree_tweak(level: u8, pos_in_level: u32) -> Self::Tweak {
-        PoseidonTweak::TreeTweak { level, pos_in_level }
+        PoseidonTweak::TreeTweak {
+            level,
+            pos_in_level,
+        }
     }
 
     fn chain_tweak(epoch: u32, chain_index: u8, pos_in_chain: u8) -> Self::Tweak {
-        PoseidonTweak::ChainTweak { epoch, chain_index, pos_in_chain }
+        PoseidonTweak::ChainTweak {
+            epoch,
+            chain_index,
+            pos_in_chain,
+        }
     }
 
     fn apply(
@@ -265,8 +291,12 @@ where
             [single] => {
                 // we compress parameter, tweak, message
                 let perm = poseidon2_16();
-                let combined_input: Vec<F> =
-                    parameter.iter().chain(tweak_fe.iter()).chain(single.iter()).copied().collect();
+                let combined_input: Vec<F> = parameter
+                    .iter()
+                    .chain(tweak_fe.iter())
+                    .chain(single.iter())
+                    .copied()
+                    .collect();
                 poseidon_compress::<_, CHAIN_COMPRESSION_WIDTH, HASH_LEN>(&perm, &combined_input)
             }
 
@@ -293,8 +323,12 @@ where
                     .copied()
                     .collect();
 
-                let lengths: [u32; DOMAIN_PARAMETERS_LENGTH] =
-                    [PARAMETER_LEN as u32, TWEAK_LEN as u32, NUM_CHUNKS as u32, HASH_LEN as u32];
+                let lengths: [u32; DOMAIN_PARAMETERS_LENGTH] = [
+                    PARAMETER_LEN as u32,
+                    TWEAK_LEN as u32,
+                    NUM_CHUNKS as u32,
+                    HASH_LEN as u32,
+                ];
                 let capacity_value =
                     poseidon_safe_domain_separator::<_, MERGE_COMPRESSION_WIDTH, CAPACITY>(
                         &perm, &lengths,
@@ -311,7 +345,10 @@ where
 
     #[cfg(test)]
     fn internal_consistency_check() {
-        assert!(CAPACITY < 24, "Poseidon Tweak Chain Hash: Capacity must be less than 24");
+        assert!(
+            CAPACITY < 24,
+            "Poseidon Tweak Chain Hash: Capacity must be less than 24"
+        );
         assert!(
             PARAMETER_LEN + TWEAK_LEN + HASH_LEN <= 16,
             "Poseidon Tweak Chain Hash: Input lengths too large for Poseidon instance"
@@ -449,7 +486,11 @@ mod tests {
         }
 
         // If all K trials resulted in identical values, fail the test
-        assert!(all_same_count < K, "rand_domain generated identical elements in all {} trials", K);
+        assert!(
+            all_same_count < K,
+            "rand_domain generated identical elements in all {} trials",
+            K
+        );
     }
 
     #[test]
@@ -473,7 +514,10 @@ mod tests {
         ];
 
         // Check actual output
-        let tweak = PoseidonTweak::TreeTweak { level, pos_in_level };
+        let tweak = PoseidonTweak::TreeTweak {
+            level,
+            pos_in_level,
+        };
         let computed = tweak.to_field_elements::<2>();
         assert_eq!(computed, expected);
     }
@@ -502,7 +546,11 @@ mod tests {
         ];
 
         // Check actual output
-        let tweak = PoseidonTweak::ChainTweak { epoch, chain_index, pos_in_chain };
+        let tweak = PoseidonTweak::ChainTweak {
+            epoch,
+            chain_index,
+            pos_in_chain,
+        };
         let computed = tweak.to_field_elements::<2>();
         assert_eq!(computed, expected);
     }
@@ -522,7 +570,10 @@ mod tests {
             F::from_u128(((&tweak_bigint / &p) % &p).try_into().unwrap()),
         ];
 
-        let tweak = PoseidonTweak::TreeTweak { level, pos_in_level };
+        let tweak = PoseidonTweak::TreeTweak {
+            level,
+            pos_in_level,
+        };
         let computed = tweak.to_field_elements::<2>();
         assert_eq!(computed, expected);
     }
@@ -545,7 +596,11 @@ mod tests {
             F::from_u128(((&tweak_bigint / &p) % &p).try_into().unwrap()),
         ];
 
-        let tweak = PoseidonTweak::ChainTweak { epoch, chain_index, pos_in_chain };
+        let tweak = PoseidonTweak::ChainTweak {
+            epoch,
+            chain_index,
+            pos_in_chain,
+        };
         let computed = tweak.to_field_elements::<2>();
         assert_eq!(computed, expected);
     }
@@ -562,8 +617,11 @@ mod tests {
         for _ in 0..100_000 {
             let level = rng.random();
             let pos_in_level = rng.random();
-            let tweak_encoding =
-                PoseidonTweak::TreeTweak { level, pos_in_level }.to_field_elements::<2>();
+            let tweak_encoding = PoseidonTweak::TreeTweak {
+                level,
+                pos_in_level,
+            }
+            .to_field_elements::<2>();
 
             if let Some((prev_level, prev_pos_in_level)) =
                 map.insert(tweak_encoding, (level, pos_in_level))
@@ -586,8 +644,11 @@ mod tests {
         let level = rng.random();
         for _ in 0..10_000 {
             let pos_in_level = rng.random();
-            let tweak_encoding =
-                PoseidonTweak::TreeTweak { level, pos_in_level }.to_field_elements::<2>();
+            let tweak_encoding = PoseidonTweak::TreeTweak {
+                level,
+                pos_in_level,
+            }
+            .to_field_elements::<2>();
 
             if let Some(prev_pos_in_level) = map.insert(tweak_encoding, pos_in_level) {
                 assert_eq!(
@@ -603,8 +664,11 @@ mod tests {
         let pos_in_level = rng.random();
         for _ in 0..10_000 {
             let level = rng.random();
-            let tweak_encoding =
-                PoseidonTweak::TreeTweak { level, pos_in_level }.to_field_elements::<2>();
+            let tweak_encoding = PoseidonTweak::TreeTweak {
+                level,
+                pos_in_level,
+            }
+            .to_field_elements::<2>();
 
             if let Some(prev_level) = map.insert(tweak_encoding, level) {
                 assert_eq!(
@@ -632,8 +696,12 @@ mod tests {
 
             let input = (epoch, chain_index, pos_in_chain);
 
-            let tweak_encoding = PoseidonTweak::ChainTweak { epoch, chain_index, pos_in_chain }
-                .to_field_elements::<2>();
+            let tweak_encoding = PoseidonTweak::ChainTweak {
+                epoch,
+                chain_index,
+                pos_in_chain,
+            }
+            .to_field_elements::<2>();
 
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
@@ -652,8 +720,12 @@ mod tests {
 
             let input = (chain_index, pos_in_chain);
 
-            let tweak_encoding = PoseidonTweak::ChainTweak { epoch, chain_index, pos_in_chain }
-                .to_field_elements::<2>();
+            let tweak_encoding = PoseidonTweak::ChainTweak {
+                epoch,
+                chain_index,
+                pos_in_chain,
+            }
+            .to_field_elements::<2>();
 
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
@@ -672,8 +744,12 @@ mod tests {
 
             let input = (epoch, pos_in_chain);
 
-            let tweak_encoding = PoseidonTweak::ChainTweak { epoch, chain_index, pos_in_chain }
-                .to_field_elements::<2>();
+            let tweak_encoding = PoseidonTweak::ChainTweak {
+                epoch,
+                chain_index,
+                pos_in_chain,
+            }
+            .to_field_elements::<2>();
 
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
@@ -692,8 +768,12 @@ mod tests {
 
             let input = (epoch, chain_index);
 
-            let tweak_encoding = PoseidonTweak::ChainTweak { epoch, chain_index, pos_in_chain }
-                .to_field_elements::<2>();
+            let tweak_encoding = PoseidonTweak::ChainTweak {
+                epoch,
+                chain_index,
+                pos_in_chain,
+            }
+            .to_field_elements::<2>();
 
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
