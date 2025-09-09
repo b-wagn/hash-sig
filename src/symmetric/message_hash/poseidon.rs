@@ -12,9 +12,7 @@ use crate::poseidon2_24;
 use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
 
 /// Function to encode a message as an array of field elements
-pub(crate) fn encode_message<const MSG_LEN_FE: usize>(
-    message: &[u8; MESSAGE_LENGTH],
-) -> [F; MSG_LEN_FE] {
+pub fn encode_message<const MSG_LEN_FE: usize>(message: &[u8; MESSAGE_LENGTH]) -> [F; MSG_LEN_FE] {
     // Interpret message as a little-endian integer
     let mut acc = BigUint::from_bytes_le(message);
 
@@ -42,7 +40,7 @@ pub(crate) fn encode_message<const MSG_LEN_FE: usize>(
 /// 2.  **Sufficient Bit-Size:** The fast, two-step decomposition assumes the field is large
 ///     enough to hold a 40-bit value in at most two "digits". This requires the field's
 ///     prime to be **at least 20 bits wide**.
-pub(crate) fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
+pub fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
     // Combine epoch and domain separator into a single u64.
     let acc = ((epoch as u64) << 8) | (TWEAK_SEPARATOR_FOR_MESSAGE_HASH as u64);
 
@@ -218,7 +216,9 @@ where
 }
 
 // Example instantiations
+#[cfg(test)]
 pub type PoseidonMessageHash445 = PoseidonMessageHash<4, 4, 5, 128, 4, 2, 9>;
+#[cfg(test)]
 pub type PoseidonMessageHashW1 = PoseidonMessageHash<5, 5, 5, 163, 2, 2, 9>;
 
 #[cfg(test)]

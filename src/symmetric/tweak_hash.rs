@@ -52,7 +52,7 @@ pub trait TweakableHash {
 /// We start walking the chain at position `start_pos_in_chain` with `start`,
 /// and then walk the chain for `steps` many steps. For example, walking two steps
 /// with `start = A` would mean we walk A -> B -> C, and then return C.
-pub(crate) fn chain<TH: TweakableHash>(
+pub fn chain<TH: TweakableHash>(
     parameter: &TH::Parameter,
     epoch: u32,
     chain_index: u8,

@@ -94,7 +94,9 @@ where
 }
 
 // Example instantiations
+#[cfg(test)]
 pub type ShaMessageHash128x3 = ShaMessageHash<16, 16, 16, 8>;
+#[cfg(test)]
 pub type ShaMessageHash192x3 = ShaMessageHash<24, 24, 48, 4>;
 
 #[cfg(test)]

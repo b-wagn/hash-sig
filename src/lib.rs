@@ -1,5 +1,5 @@
-use p3_baby_bear::{
-    BabyBear, Poseidon2BabyBear, default_babybear_poseidon2_16, default_babybear_poseidon2_24,
+use p3_koala_bear::{
+    KoalaBear, Poseidon2KoalaBear, default_koalabear_poseidon2_16, default_koalabear_poseidon2_24,
 };
 use std::sync::OnceLock;
 
@@ -10,12 +10,12 @@ pub const TWEAK_SEPARATOR_FOR_MESSAGE_HASH: u8 = 0x02;
 pub const TWEAK_SEPARATOR_FOR_TREE_HASH: u8 = 0x01;
 pub const TWEAK_SEPARATOR_FOR_CHAIN_HASH: u8 = 0x00;
 
-type F = BabyBear;
+type F = KoalaBear;
 
-pub mod hypercube;
-pub mod inc_encoding;
+pub(crate) mod hypercube;
+pub(crate) mod inc_encoding;
 pub mod signature;
-pub mod symmetric;
+pub(crate) mod symmetric;
 
 // Cached Poseidon2 permutations.
 //

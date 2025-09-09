@@ -107,8 +107,11 @@ where
 }
 
 // Example instantiations
+#[cfg(test)]
 pub type ShaTweak128128 = ShaTweakHash<16, 16>;
+#[cfg(test)]
 pub type ShaTweak128192 = ShaTweakHash<16, 24>;
+#[cfg(test)]
 pub type ShaTweak192192 = ShaTweakHash<24, 24>;
 
 #[cfg(test)]

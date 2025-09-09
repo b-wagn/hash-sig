@@ -59,6 +59,7 @@ impl AllLayerData<'_> {
     }
 
     /// Gets the `LayerInfo` of dimension `v`.
+    #[allow(dead_code)]
     fn layer_info_for_dimension(&self, v: usize) -> &LayerInfo {
         &self.0[v]
     }
@@ -173,6 +174,36 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
     out
 }
 
+/// Map a vertex `a` in layer `d` to its index x in [0, layer_size(v, d)).
+///
+/// # Panics
+///
+/// Panics if `d` is not a valid layer. Valid layer means`0 <= d <= v * (w-1)`,
+/// Panics if `a` is not on layer `d`.
+#[allow(dead_code)]
+pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
+    assert_eq!(a.len(), v);
+    let mut x_curr = BigUint::zero();
+    let mut d_curr = w - 1 - a[v - 1] as usize;
+
+    // Use only once and drop immediately after loop
+    {
+        let layer_data = AllLayerData::new(w);
+
+        for i in (0..v - 1).rev() {
+            let ji = w - 1 - a[i] as usize;
+            d_curr += ji;
+            let j_start = d_curr.saturating_sub((w - 1) * (v - i - 1));
+            x_curr += layer_data
+                .layer_info_for_dimension(v - i - 1)
+                .sizes_sum_in_range(d_curr - ji + 1..=d_curr - j_start);
+        }
+    }
+
+    assert_eq!(d_curr, d);
+    x_curr
+}
+
 /// Returns the total size of layers 0 to d (inclusive) in hypercube [0, w-1]^v.
 ///
 /// # Panics
@@ -218,36 +249,6 @@ pub fn hypercube_find_layer(w: usize, v: usize, x: BigUint) -> (usize, BigUint) 
         let remainder = x - &prefix_sums[d - 1];
         (d, remainder)
     }
-}
-
-/// Map a vertex `a` in layer `d` to its index x in [0, layer_size(v, d)).
-///
-/// # Panics
-///
-/// Panics if `d` is not a valid layer. Valid layer means`0 <= d <= v * (w-1)`,
-/// Panics if `a` is not on layer `d`.
-#[must_use]
-pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
-    assert_eq!(a.len(), v);
-    let mut x_curr = BigUint::zero();
-    let mut d_curr = w - 1 - a[v - 1] as usize;
-
-    // Use only once and drop immediately after loop
-    {
-        let layer_data = AllLayerData::new(w);
-
-        for i in (0..v - 1).rev() {
-            let ji = w - 1 - a[i] as usize;
-            d_curr += ji;
-            let j_start = d_curr.saturating_sub((w - 1) * (v - i - 1));
-            x_curr += layer_data
-                .layer_info_for_dimension(v - i - 1)
-                .sizes_sum_in_range(d_curr - ji + 1..=d_curr - j_start);
-        }
-    }
-
-    assert_eq!(d_curr, d);
-    x_curr
 }
 
 #[cfg(test)]
