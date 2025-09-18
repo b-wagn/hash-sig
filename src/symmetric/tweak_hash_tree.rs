@@ -262,7 +262,7 @@ pub fn hash_tree_verify<TH: TweakableHash>(
     for l in 0..depth {
         // Need to distinguish two cases, depending on
         // if current is a left child or a right child
-        let children = if current_position % 2 == 0 {
+        let children = if current_position.is_multiple_of(2) {
             // left child, so co-path contains the right sibling
             [current_node, opening.co_path[l]]
         } else {

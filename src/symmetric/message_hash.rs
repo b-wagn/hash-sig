@@ -205,12 +205,12 @@ mod tests {
 
             // Each chunk should be identical to the expected manual result.
             prop_assert_eq!(
-                chunks.clone(),
-                expected.clone(),
+                chunks.as_slice(),
+                expected.as_slice(),
                 "Chunk data mismatch for chunk_size = {}: got {:?}, expected {:?}",
                 chunk_size,
-                chunks,
-                expected
+                chunks.as_slice(),
+                expected.as_slice()
             );
         }
     }
