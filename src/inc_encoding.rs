@@ -15,7 +15,7 @@ use crate::MESSAGE_LENGTH;
 /// The main feature of these encodings is that no two distinct
 /// codewords are "comparable", i.e., for no two codewords
 /// x = (x_1,..,x_k) and x' = (x'_1,..,x'_k) we have
-/// x_i > x_i' for all i = 1,...,k.
+/// x_i > x'_i for all i = 1,...,k.
 pub trait IncomparableEncoding {
     type Parameter: Serialize + DeserializeOwned;
     type Randomness: Serialize + DeserializeOwned;
