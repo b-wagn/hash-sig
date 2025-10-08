@@ -1,3 +1,4 @@
+use p3_field::{Field, PackedField};
 use rand::Rng;
 use serde::{Serialize, de::DeserializeOwned};
 
@@ -43,6 +44,44 @@ pub trait TweakableHash {
     /// For testing only, and expected to panic if something is wrong.
     #[cfg(test)]
     fn internal_consistency_check();
+}
+
+/// Trait to model a tweakable hash function that supports packed (SIMD) operations.
+///
+/// This trait enables SIMD-accelerated hash tree construction by processing
+/// multiple hash computations in parallel. The HASH_LEN and TWEAK_LEN parameters
+/// must match the lengths used in the Domain type of the underlying TweakableHash.
+pub trait PackedTweakableHash<P, F>: TweakableHash
+where
+    P: PackedField<Scalar = F>,
+    F: Field,
+{
+    /// Applies the hash to a batch of WIDTH pairs in parallel using SIMD.
+    ///
+    /// # Arguments
+    /// * `parameter` - The public parameter (scalar, broadcasted to all lanes)
+    /// * `tweak` - Packed tweak values for WIDTH parallel computations
+    /// * `left` - Packed left children (SoA format)
+    /// * `right` - Packed right children (SoA format)
+    ///
+    /// # Returns
+    /// Packed parent hashes.
+    fn apply_packed<const HASH_LEN: usize, const TWEAK_LEN: usize>(
+        parameter: &Self::Parameter,
+        tweak: [P; TWEAK_LEN],
+        left: [P; HASH_LEN],
+        right: [P; HASH_LEN],
+    ) -> [P; HASH_LEN];
+
+    /// Generates packed tweaks for a batch of tree nodes at the same level.
+    ///
+    /// # Arguments
+    /// * `level` - The level in the tree (scalar, same for all lanes)
+    /// * `starting_pos` - Packed positions [pos, pos+1, ..., pos+WIDTH-1]
+    ///
+    /// # Returns
+    /// Packed tweak values.
+    fn tree_tweak_packed<const TWEAK_LEN: usize>(level: u8, starting_pos: P) -> [P; TWEAK_LEN];
 }
 
 /// Function implementing hash chains, implemented over a tweakable hash function

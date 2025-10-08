@@ -38,7 +38,7 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
     // Note: benchmarking key generation takes long, so it is
     // commented out for now. You can enable it here.
 
-    #[cfg(feature = "with-gen-benches-poseidon-top-level")]
+    // #[cfg(feature = "with-gen-benches-poseidon-top-level")]
     group.bench_function("- gen", |b| {
         b.iter(|| {
             // Benchmark key generation
@@ -107,27 +107,27 @@ pub fn bench_function_poseidon_top_level(c: &mut Criterion) {
         ),
     );
 
-    // benchmarking lifetime 2^32 - hashing optimized
-    benchmark_signature_scheme::<SIGTopLevelTargetSumLifetime32Dim64Base8>(
-        c,
-        &format!(
-            "Top Level TS, Lifetime 2^32, Activation 2^{MAX_LOG_ACTIVATION_DURATION}, Dimension 64, Base 8 (Hashing Optimized)"
-        ),
-    );
+    // // benchmarking lifetime 2^32 - hashing optimized
+    // benchmark_signature_scheme::<SIGTopLevelTargetSumLifetime32Dim64Base8>(
+    //     c,
+    //     &format!(
+    //         "Top Level TS, Lifetime 2^32, Activation 2^{MAX_LOG_ACTIVATION_DURATION}, Dimension 64, Base 8 (Hashing Optimized)"
+    //     ),
+    // );
 
-    // benchmarking lifetime 2^32 - trade-off
-    benchmark_signature_scheme::<SIGTopLevelTargetSumLifetime32Dim48Base10>(
-        c,
-        &format!(
-            "Top Level TS, Lifetime 2^32, Activation 2^{MAX_LOG_ACTIVATION_DURATION}, Dimension 48, Base 10 (Trade-off)"
-        ),
-    );
+    // // benchmarking lifetime 2^32 - trade-off
+    // benchmark_signature_scheme::<SIGTopLevelTargetSumLifetime32Dim48Base10>(
+    //     c,
+    //     &format!(
+    //         "Top Level TS, Lifetime 2^32, Activation 2^{MAX_LOG_ACTIVATION_DURATION}, Dimension 48, Base 10 (Trade-off)"
+    //     ),
+    // );
 
-    // benchmarking lifetime 2^32 - size optimized
-    benchmark_signature_scheme::<SIGTopLevelTargetSumLifetime32Dim32Base26>(
-        c,
-        &format!(
-            "Top Level TS, Lifetime 2^32, Activation 2^{MAX_LOG_ACTIVATION_DURATION}, Dimension 32, Base 26 (Size Optimized)"
-        ),
-    );
+    // // benchmarking lifetime 2^32 - size optimized
+    // benchmark_signature_scheme::<SIGTopLevelTargetSumLifetime32Dim32Base26>(
+    //     c,
+    //     &format!(
+    //         "Top Level TS, Lifetime 2^32, Activation 2^{MAX_LOG_ACTIVATION_DURATION}, Dimension 32, Base 26 (Size Optimized)"
+    //     ),
+    // );
 }

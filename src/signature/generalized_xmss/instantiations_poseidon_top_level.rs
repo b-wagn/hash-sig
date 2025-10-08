@@ -8,7 +8,7 @@ pub mod lifetime_2_to_the_18 {
             prf::shake_to_field::ShakePRFtoF, tweak_hash::poseidon::PoseidonTweakHash,
         },
     };
-    const LOG_LIFETIME: usize = 18;
+    const LOG_LIFETIME: usize = 14;
 
     const DIMENSION: usize = 64;
     const BASE: usize = 8;

@@ -1,15 +1,15 @@
-use p3_field::PrimeCharacteristicRing;
-use p3_field::PrimeField64;
+use p3_field::{PackedField, PackedValue, PrimeCharacteristicRing, PrimeField64};
 use p3_symmetric::Permutation;
 use serde::{Serialize, de::DeserializeOwned};
 
 use crate::F;
+use crate::P;
 use crate::TWEAK_SEPARATOR_FOR_CHAIN_HASH;
 use crate::TWEAK_SEPARATOR_FOR_TREE_HASH;
 use crate::poseidon2_16;
 use crate::poseidon2_24;
 
-use super::TweakableHash;
+use super::{PackedTweakableHash, TweakableHash};
 
 const DOMAIN_PARAMETERS_LENGTH: usize = 4;
 /// The state width for compressing a single hash in a chain.
@@ -102,6 +102,54 @@ where
 
     // Copy the input into a fixed-width buffer, zero-padding unused elements if any.
     let mut padded_input = [F::ZERO; WIDTH];
+    padded_input[..input.len()].copy_from_slice(input);
+
+    // Start with the input as the initial state.
+    let mut state = padded_input;
+
+    // Apply the Poseidon permutation in-place.
+    perm.permute_mut(&mut state);
+
+    // Feed-forward: Add the input back into the state element-wise.
+    for i in 0..WIDTH {
+        state[i] += padded_input[i];
+    }
+
+    // Truncate and return the first `OUT_LEN` elements of the state.
+    state[..OUT_LEN]
+        .try_into()
+        .expect("OUT_LEN is larger than permutation width")
+}
+
+/// Packed Poseidon Compression Function for SIMD operations.
+///
+/// Performs the same operation as `poseidon_compress` but on packed field elements,
+/// allowing multiple compressions to happen in parallel using SIMD instructions.
+///
+/// Computes:
+///     PoseidonCompress(x) = Truncate(PoseidonPermute(x) + x)
+///
+/// - `WIDTH`: total state width (input length to permutation).
+/// - `OUT_LEN`: number of output elements to return.
+/// - `perm`: a Poseidon permutation over `[Fp; WIDTH]` where `Fp` is a packed field.
+/// - `input`: slice of packed input values.
+///
+/// Returns: the first `OUT_LEN` packed elements of the permuted and compressed state.
+pub fn poseidon_compress_packed<Fp, Perm, const WIDTH: usize, const OUT_LEN: usize>(
+    perm: &Perm,
+    input: &[Fp],
+) -> [Fp; OUT_LEN]
+where
+    Fp: PackedField,
+    Perm: Permutation<[Fp; WIDTH]>,
+{
+    assert!(
+        input.len() >= OUT_LEN,
+        "Poseidon Compression (Packed): Input length must be at least output length."
+    );
+
+    // Copy the input into a fixed-width buffer, zero-padding unused elements if any.
+    let mut padded_input = [Fp::ZERO; WIDTH];
     padded_input[..input.len()].copy_from_slice(input);
 
     // Start with the input as the initial state.
@@ -376,6 +424,80 @@ where
             tweak_fe_bits >= bits_for_chain_tweak,
             "Poseidon Tweak Hash: not enough field elements to encode the chain tweak"
         );
+    }
+}
+
+impl<
+    const PARAMETER_LEN: usize,
+    const HASH_LEN: usize,
+    const TWEAK_LEN: usize,
+    const CAPACITY: usize,
+    const NUM_CHUNKS: usize,
+> PackedTweakableHash<P, F>
+    for PoseidonTweakHash<PARAMETER_LEN, HASH_LEN, TWEAK_LEN, CAPACITY, NUM_CHUNKS>
+where
+    [F; PARAMETER_LEN]: Serialize + DeserializeOwned,
+    [F; HASH_LEN]: Serialize + DeserializeOwned,
+{
+    fn tree_tweak_packed<const TWEAK_LEN_CONST: usize>(
+        level: u8,
+        starting_pos: P,
+    ) -> [P; TWEAK_LEN_CONST] {
+        // Compute the tweak for each packed lane:
+        // tweak = (level << 40) | (pos << 8) | separator
+        // Then decompose into base-p field elements.
+
+        // Compute the combined value: (level << 40) + (starting_pos << 8) + sep
+        // We do this computation in u128 for each lane
+        let mut tweak_packed = [P::ZERO; TWEAK_LEN_CONST];
+
+        for lane in 0..P::WIDTH {
+            // Extract scalar position for this lane
+            let pos_scalar = starting_pos.as_slice()[lane];
+
+            // Compute tweak as u128
+            let mut acc = ((level as u128) << 40)
+                | ((pos_scalar.as_canonical_u64() as u128) << 8)
+                | (TWEAK_SEPARATOR_FOR_TREE_HASH as u128);
+
+            // Decompose into base-p and store in each tweak element
+            for tweak_elem in &mut tweak_packed {
+                let digit = (acc % F::ORDER_U64 as u128) as u64;
+                acc /= F::ORDER_U64 as u128;
+
+                // Get mutable access to this lane in the packed element
+                let slice = tweak_elem.as_slice_mut();
+                slice[lane] = F::from_u64(digit);
+            }
+        }
+
+        tweak_packed
+    }
+
+    fn apply_packed<const HASH_LEN_CONST: usize, const TWEAK_LEN_CONST: usize>(
+        parameter: &Self::Parameter,
+        tweak: [P; TWEAK_LEN_CONST],
+        left: [P; HASH_LEN_CONST],
+        right: [P; HASH_LEN_CONST],
+    ) -> [P; HASH_LEN_CONST] {
+        // Use the packed permutation for tree hash (merging two children)
+        let perm = poseidon2_24();
+
+        // Broadcast parameter scalars to packed values
+        let param_packed: Vec<P> = parameter.iter().map(|&s| P::from(s)).collect();
+
+        // Combine: parameter || tweak || left || right
+        let combined_input: Vec<P> = param_packed
+            .into_iter()
+            .chain(tweak.iter().copied())
+            .chain(left.iter().copied())
+            .chain(right.iter().copied())
+            .collect();
+
+        poseidon_compress_packed::<P, _, MERGE_COMPRESSION_WIDTH, HASH_LEN_CONST>(
+            &perm,
+            &combined_input,
+        )
     }
 }
 
