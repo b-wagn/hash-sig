@@ -8,6 +8,7 @@ use hashsig::{
     signature::{
         SignatureScheme,
         generalized_xmss::instantiations_poseidon_top_level::{
+            lifetime_2_to_the_8::SIGTopLevelTargetSumLifetime8Dim64Base8,
             lifetime_2_to_the_18::SIGTopLevelTargetSumLifetime18Dim64Base8,
             lifetime_2_to_the_32::{
                 hashing_optimized::SIGTopLevelTargetSumLifetime32Dim64Base8,
@@ -93,6 +94,14 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
 }
 
 pub fn bench_function_poseidon_top_level(c: &mut Criterion) {
+    // benchmarking lifetime 2^8
+    benchmark_signature_scheme::<SIGTopLevelTargetSumLifetime8Dim64Base8>(
+        c,
+        &format!(
+            "Top Level TS, Lifetime 2^8, Activation 2^{MAX_LOG_ACTIVATION_DURATION}, Dimension 64, Base 8"
+        ),
+    );
+
     // benchmarking lifetime 2^18
     benchmark_signature_scheme::<SIGTopLevelTargetSumLifetime18Dim64Base8>(
         c,
