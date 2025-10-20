@@ -324,9 +324,9 @@ pub mod lifetime_2_to_the_32 {
     }
 }
 
-/// Instantiations with Lifetime 2^8
+/// Instantiations with Lifetime 2^8. This is for testing purposes only.
 ///
-/// Warning: Should not be used in producrtion environments.
+/// Warning: Should not be used in production environments.
 pub mod lifetime_2_to_the_8 {
     use crate::{
         inc_encoding::target_sum::TargetSumEncoding,
@@ -352,15 +352,14 @@ pub mod lifetime_2_to_the_8 {
 
     const CAPACITY: usize = 9;
 
-    const POSEIDON_OUTPUT_LENGTH_PER_INVOCATION_FIELD_ELEMENTS: usize = 15;
-    const POSEIDON_INVOCATIONS: usize = 1;
-    const POSEIDON_OUTPUT_LENGTH_FIELD_ELEMENTS: usize =
-        POSEIDON_OUTPUT_LENGTH_PER_INVOCATION_FIELD_ELEMENTS * POSEIDON_INVOCATIONS;
+    const POS_OUTPUT_LEN_PER_INV_FE: usize = 15;
+    const POS_INVOCATIONS: usize = 1;
+    const POS_OUTPUT_LEN_FE: usize = POS_OUTPUT_LEN_PER_INV_FE * POS_INVOCATIONS;
 
     type MH = TopLevelPoseidonMessageHash<
-        POSEIDON_OUTPUT_LENGTH_PER_INVOCATION_FIELD_ELEMENTS,
-        POSEIDON_INVOCATIONS,
-        POSEIDON_OUTPUT_LENGTH_FIELD_ELEMENTS,
+        POS_OUTPUT_LEN_PER_INV_FE,
+        POS_INVOCATIONS,
+        POS_OUTPUT_LEN_FE,
         DIMENSION,
         BASE,
         FINAL_LAYER,
@@ -371,7 +370,6 @@ pub mod lifetime_2_to_the_8 {
     >;
     type TH = PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, DIMENSION>;
 
-    #[allow(clippy::upper_case_acronyms)]
     type PRF = ShakePRFtoF<HASH_LEN_FE, RAND_LEN_FE>;
 
     type IE = TargetSumEncoding<MH, TARGET_SUM>;
