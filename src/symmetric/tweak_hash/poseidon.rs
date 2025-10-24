@@ -390,13 +390,13 @@ where
             .par_chunks_exact(width)
             .zip(leaves.par_chunks_exact_mut(width))
             .for_each(|(epoch_chunk, leaves_chunk)| {
-                // 1. Generate chain starts and pack them into SoA layout.
+                // 1. Generate chain starts and pack them.
                 let mut packed_chain_ends = [[PackedF::ZERO; HASH_LEN]; NUM_CHUNKS];
                 for c_idx in 0..NUM_CHUNKS {
-                    let starts_aoa: [[F; HASH_LEN]; PackedF::WIDTH] = array::from_fn(|lane| {
+                    let starts: [[F; HASH_LEN]; PackedF::WIDTH] = array::from_fn(|lane| {
                         PRF::get_domain_element(prf_key, epoch_chunk[lane], c_idx as u64).into()
                     });
-                    packed_chain_ends[c_idx] = pack_array(&starts_aoa);
+                    packed_chain_ends[c_idx] = pack_array(&starts);
                 }
 
                 // 2. Walk all chains in parallel. `steps` is `chain_length - 1`.
@@ -480,6 +480,105 @@ where
         Some(leaves)
     }
 
+    fn try_new_subtree_packed<R: Rng>(
+        rng: &mut R,
+        lowest_layer: usize,
+        depth: usize,
+        start_index: usize,
+        parameter: &Self::Parameter,
+        lowest_layer_nodes: Vec<Self::Domain>,
+    ) -> Option<HashSubTree<Self>>
+    where
+        Self: Sized,
+    {
+        let width = PackedF::WIDTH;
+        let mut layers = Vec::with_capacity(depth + 1 - lowest_layer);
+        layers.push(HashTreeLayer::padded(rng, lowest_layer_nodes, start_index));
+
+        let packed_parameter: [PackedF; PARAMETER_LEN] =
+            array::from_fn(|i| PackedF::from(parameter[i]));
+        let perm = poseidon2_24();
+
+        for level in lowest_layer..depth {
+            let prev = &layers[level - lowest_layer];
+            let parent_start = prev.start_index() >> 1;
+            let num_parents = prev.nodes().len() / 2;
+
+            let mut parents = vec![[F::ZERO; HASH_LEN]; num_parents];
+
+            parents.par_chunks_exact_mut(width).enumerate().for_each(
+                |(chunk_idx, parents_chunk)| {
+                    let p_idx_start = chunk_idx * width;
+                    let c_idx_start = p_idx_start * 2;
+                    let prev_nodes = prev.nodes();
+
+                    let packed_left =
+                        pack_array::<HASH_LEN>(&array::from_fn::<_, { PackedF::WIDTH }, _>(
+                            |lane| prev_nodes[c_idx_start + lane * 2],
+                        ));
+                    let packed_right =
+                        pack_array::<HASH_LEN>(&array::from_fn::<_, { PackedF::WIDTH }, _>(
+                            |lane| prev_nodes[c_idx_start + lane * 2 + 1],
+                        ));
+
+                    let packed_tweak: [PackedF; TWEAK_LEN] = array::from_fn(|t_idx| {
+                        PackedF::from_fn(|lane| {
+                            let parent_pos = (parent_start + p_idx_start + lane) as u32;
+                            PoseidonTweak::TreeTweak {
+                                level: (level as u8) + 1,
+                                pos_in_level: parent_pos,
+                            }
+                            .to_field_elements::<TWEAK_LEN>()[t_idx]
+                        })
+                    });
+
+                    let mut input_arr = [PackedF::ZERO; MERGE_COMPRESSION_WIDTH];
+                    input_arr[..PARAMETER_LEN].copy_from_slice(&packed_parameter);
+                    input_arr[PARAMETER_LEN..PARAMETER_LEN + TWEAK_LEN]
+                        .copy_from_slice(&packed_tweak);
+                    input_arr[PARAMETER_LEN + TWEAK_LEN..PARAMETER_LEN + TWEAK_LEN + HASH_LEN]
+                        .copy_from_slice(&packed_left);
+                    input_arr[PARAMETER_LEN + TWEAK_LEN + HASH_LEN
+                        ..PARAMETER_LEN + TWEAK_LEN + 2 * HASH_LEN]
+                        .copy_from_slice(&packed_right);
+
+                    let packed_parents =
+                        poseidon_compress::<PackedF, _, MERGE_COMPRESSION_WIDTH, HASH_LEN>(
+                            &perm, &input_arr,
+                        );
+
+                    unpack_array(&packed_parents, parents_chunk);
+                },
+            );
+
+            // Remainder handling (scalar path)
+            let remainder_start = (num_parents / width) * width;
+            for i in remainder_start..num_parents {
+                let children = &prev.nodes()[i * 2..i * 2 + 2];
+                let parent_pos = (parent_start + i) as u32;
+                let tweak = PoseidonTweak::TreeTweak {
+                    level: (level as u8) + 1,
+                    pos_in_level: parent_pos,
+                };
+                parents[i] = PoseidonTweakHash::<
+                    PARAMETER_LEN,
+                    HASH_LEN,
+                    TWEAK_LEN,
+                    CAPACITY,
+                    NUM_CHUNKS,
+                >::apply(parameter, &tweak, children);
+            }
+
+            layers.push(HashTreeLayer::padded(rng, parents, parent_start));
+        }
+
+        Some(HashSubTree {
+            depth,
+            lowest_layer,
+            layers,
+        })
+    }
+
     #[cfg(test)]
     fn internal_consistency_check() {
         assert!(
@@ -513,142 +612,6 @@ where
             tweak_fe_bits >= bits_for_chain_tweak,
             "Poseidon Tweak Hash: not enough field elements to encode the chain tweak"
         );
-    }
-
-    fn try_new_subtree_packed<R: Rng>(
-        rng: &mut R,
-        lowest_layer: usize,
-        depth: usize,
-        start_index: usize,
-        parameter: &Self::Parameter,
-        lowest_layer_nodes: Vec<Self::Domain>,
-    ) -> Option<HashSubTree<Self>>
-    where
-        Self: Sized,
-    {
-        Some(new_subtree_packed::<
-            R,
-            PARAMETER_LEN,
-            HASH_LEN,
-            TWEAK_LEN,
-            CAPACITY,
-            NUM_CHUNKS,
-        >(
-            rng,
-            lowest_layer,
-            depth,
-            start_index,
-            parameter,
-            lowest_layer_nodes,
-        ))
-    }
-}
-
-/// Packed-SIMD implementation for building a Merkle sub-tree.
-fn new_subtree_packed<
-    R: Rng,
-    const PARAMETER_LEN: usize,
-    const HASH_LEN: usize,
-    const TWEAK_LEN: usize,
-    const CAPACITY: usize,
-    const NUM_CHUNKS: usize,
->(
-    rng: &mut R,
-    lowest_layer: usize,
-    depth: usize,
-    start_index: usize,
-    parameter: &[F; PARAMETER_LEN],
-    lowest_layer_nodes: Vec<[F; HASH_LEN]>,
-) -> HashSubTree<PoseidonTweakHash<PARAMETER_LEN, HASH_LEN, TWEAK_LEN, CAPACITY, NUM_CHUNKS>>
-where
-    [F; PARAMETER_LEN]: Serialize + DeserializeOwned,
-    [F; HASH_LEN]: Serialize + DeserializeOwned,
-{
-    let width = PackedF::WIDTH;
-    let mut layers = Vec::with_capacity(depth + 1 - lowest_layer);
-    layers.push(HashTreeLayer::padded(rng, lowest_layer_nodes, start_index));
-
-    let packed_parameter: [PackedF; PARAMETER_LEN] =
-        array::from_fn(|i| PackedF::from(parameter[i]));
-    let perm = poseidon2_24();
-
-    for level in lowest_layer..depth {
-        let prev = &layers[level - lowest_layer];
-        let parent_start = prev.start_index() >> 1;
-        let num_parents = prev.nodes().len() / 2;
-
-        let mut parents = vec![[F::ZERO; HASH_LEN]; num_parents];
-
-        parents
-            .par_chunks_exact_mut(width)
-            .enumerate()
-            .for_each(|(chunk_idx, parents_chunk)| {
-                let p_idx_start = chunk_idx * width;
-                let c_idx_start = p_idx_start * 2;
-                let prev_nodes = prev.nodes();
-
-                let packed_left =
-                    pack_array::<HASH_LEN>(&array::from_fn::<_, { PackedF::WIDTH }, _>(|lane| {
-                        prev_nodes[c_idx_start + lane * 2]
-                    }));
-                let packed_right =
-                    pack_array::<HASH_LEN>(&array::from_fn::<_, { PackedF::WIDTH }, _>(|lane| {
-                        prev_nodes[c_idx_start + lane * 2 + 1]
-                    }));
-
-                let packed_tweak: [PackedF; TWEAK_LEN] = array::from_fn(|t_idx| {
-                    PackedF::from_fn(|lane| {
-                        let parent_pos = (parent_start + p_idx_start + lane) as u32;
-                        PoseidonTweak::TreeTweak {
-                            level: (level as u8) + 1,
-                            pos_in_level: parent_pos,
-                        }
-                        .to_field_elements::<TWEAK_LEN>()[t_idx]
-                    })
-                });
-
-                let mut input_arr = [PackedF::ZERO; MERGE_COMPRESSION_WIDTH];
-                input_arr[..PARAMETER_LEN].copy_from_slice(&packed_parameter);
-                input_arr[PARAMETER_LEN..PARAMETER_LEN + TWEAK_LEN].copy_from_slice(&packed_tweak);
-                input_arr[PARAMETER_LEN + TWEAK_LEN..PARAMETER_LEN + TWEAK_LEN + HASH_LEN]
-                    .copy_from_slice(&packed_left);
-                input_arr[PARAMETER_LEN + TWEAK_LEN + HASH_LEN
-                    ..PARAMETER_LEN + TWEAK_LEN + 2 * HASH_LEN]
-                    .copy_from_slice(&packed_right);
-
-                let packed_parents =
-                    poseidon_compress::<PackedF, _, MERGE_COMPRESSION_WIDTH, HASH_LEN>(
-                        &perm, &input_arr,
-                    );
-
-                unpack_array(&packed_parents, parents_chunk);
-            });
-
-        // Remainder handling (scalar path)
-        let remainder_start = (num_parents / width) * width;
-        for i in remainder_start..num_parents {
-            let children = &prev.nodes()[i * 2..i * 2 + 2];
-            let parent_pos = (parent_start + i) as u32;
-            let tweak = PoseidonTweak::TreeTweak {
-                level: (level as u8) + 1,
-                pos_in_level: parent_pos,
-            };
-            parents[i] = PoseidonTweakHash::<
-                PARAMETER_LEN,
-                HASH_LEN,
-                TWEAK_LEN,
-                CAPACITY,
-                NUM_CHUNKS,
-            >::apply(parameter, &tweak, children);
-        }
-
-        layers.push(HashTreeLayer::padded(rng, parents, parent_start));
-    }
-
-    HashSubTree {
-        depth,
-        lowest_layer,
-        layers,
     }
 }
 
