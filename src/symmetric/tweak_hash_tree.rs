@@ -68,18 +68,6 @@ impl<TH: TweakableHash> HashTreeLayer<TH> {
             nodes: out,
         }
     }
-
-    /// Returns the start index of this layer.
-    #[inline]
-    pub(crate) fn start_index(&self) -> usize {
-        self.start_index
-    }
-
-    /// Returns a reference to the nodes in this layer.
-    #[inline]
-    pub(crate) fn nodes(&self) -> &[TH::Domain] {
-        &self.nodes
-    }
 }
 
 /// Sub-tree of a sparse Hash-Tree based on a tweakable hashes.
@@ -128,46 +116,6 @@ impl<TH> HashSubTree<TH>
 where
     TH: TweakableHash,
 {
-    /// Public constructor for a hash sub-tree.
-    ///
-    /// This function acts as a dispatcher.
-    /// - It first attempts to use packed-SIMD implementation if the backend provides one.
-    /// - If not, it falls back to a generic, parallel implementation.
-    pub fn new_subtree<R: Rng>(
-        rng: &mut R,
-        lowest_layer: usize,
-        depth: usize,
-        start_index: usize,
-        parameter: &TH::Parameter,
-        lowest_layer_nodes: Vec<TH::Domain>,
-    ) -> Self {
-        // Try to delegate to a specialized, packed implementation first.
-        //
-        // This is the case for Poseidon2.
-        if let Some(tree) = TH::try_new_subtree_packed(
-            rng,
-            lowest_layer,
-            depth,
-            start_index,
-            parameter,
-            lowest_layer_nodes.clone(),
-        ) {
-            return tree;
-        }
-
-        // Fallback to generic scalar implementation if no packed version is available.
-        //
-        // TODO: For now, SIMD is not supported for Sha.
-        Self::new_subtree_scalar(
-            rng,
-            lowest_layer,
-            depth,
-            start_index,
-            parameter,
-            lowest_layer_nodes,
-        )
-    }
-
     /// Function to compute a (sub-tree of a) hash-tree, which contains the top layers
     /// of a hash tree. The function takes the nodes in layer `lowest_layer` as input.
     /// They correspond to the (hashes of) the leafs if `lowest_layer = 0`.
@@ -189,7 +137,7 @@ where
     /// Note: The RNG is used for generating nodes used for padding in the case of
     /// sparse trees. They could as well be fixed, and hence the RNG does not need
     /// to be cryptographically secure for this function.
-    pub fn new_subtree_scalar<R: Rng>(
+    pub fn new_subtree<R: Rng>(
         rng: &mut R,
         lowest_layer: usize,
         depth: usize,

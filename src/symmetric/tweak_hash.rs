@@ -1,23 +1,25 @@
 use rand::Rng;
+use rayon::prelude::*;
 use serde::{Serialize, de::DeserializeOwned};
 
-use crate::symmetric::tweak_hash_tree::HashSubTree;
+use crate::symmetric::prf::Pseudorandom;
 
 /// Trait to model a tweakable hash function.
-/// Such a function takes a public parameter, a tweak, and a
-/// message to be hashed. The tweak should be understood as an
-/// address for domain separation.
 ///
-/// In our setting, we require the support of hashing lists of
-/// hashes. Therefore, we just define a type `Domain` and the
-/// hash function maps from [Domain] to Domain.
+/// This trait defines the core operations for a hash function that uses
+/// tweaks for domain separation. A tweak acts as an address or identifier
+/// that ensures different applications of the hash produce distinct outputs.
 ///
-/// We also require that the tweak hash already specifies how
-/// to obtain distinct tweaks for applications in chains and
-/// applications in Merkle trees.
+/// The hash function maps `[Domain]` → `Domain`, supporting both single
+/// values and lists of values.
 pub trait TweakableHash {
+    /// Public parameter type for the hash function
     type Parameter: Copy + Sized + Send + Sync + Serialize + DeserializeOwned;
+
+    /// Tweak type for domain separation
     type Tweak;
+
+    /// Domain element type (output and input to the hash)
     type Domain: Copy + PartialEq + Sized + Send + Sync + Serialize + DeserializeOwned;
 
     /// Generates a random public parameter.
@@ -26,74 +28,82 @@ pub trait TweakableHash {
     /// Generates a random domain element.
     fn rand_domain<R: Rng>(rng: &mut R) -> Self::Domain;
 
-    /// Returns a tweak to be used in the Merkle tree.
-    /// Note: this is assumed to be distinct from the outputs of chain_tweak
+    /// Returns a tweak to be used in Merkle tree node hashing.
+    ///
+    /// The tweak is derived from the node's level and position within that level.
+    ///
+    /// Tree tweaks are guaranteed to be distinct from chain tweaks.
     fn tree_tweak(level: u8, pos_in_level: u32) -> Self::Tweak;
 
-    /// Returns a tweak to be used in chains.
-    /// Note: this is assumed to be distinct from the outputs of tree_tweak
+    /// Returns a tweak to be used in hash chain iteration.
+    ///
+    /// The tweak is derived from the epoch, chain index, and position within the chain.
+    ///
+    /// Chain tweaks are guaranteed to be distinct from tree tweaks.
     fn chain_tweak(epoch: u32, chain_index: u8, pos_in_chain: u8) -> Self::Tweak;
 
-    /// Applies the tweakable hash to parameter, tweak, and message.
+    /// Applies the tweakable hash to a parameter, tweak, and message.
+    ///
+    /// # Arguments
+    /// * `parameter` - Public parameter for the hash function
+    /// * `tweak` - Domain separator (tree or chain tweak)
+    /// * `message` - Input message (one or more domain elements)
+    ///
+    /// # Returns
+    /// Single domain element representing the hash output
     fn apply(
         parameter: &Self::Parameter,
         tweak: &Self::Tweak,
         message: &[Self::Domain],
     ) -> Self::Domain;
 
-    /// Optional SIMD-optimized batch computation of tree leaves.
+    /// Computes bottom tree leaves by walking hash chains for multiple epochs.
     ///
-    /// This method can be overridden by implementations to provide SIMD-accelerated
-    /// batch processing of multiple epochs. The default implementation falls back to
-    /// sequential scalar processing.
+    /// This method has a default scalar implementation that processes epochs in parallel.
+    /// Hash functions implementing `PackedTweakableHash` can override this to use SIMD.
     ///
     /// # Arguments
-    /// * `prf_key` - PRF key for generating chain starts
+    /// * `prf_key` - PRF key for generating chain starting points
     /// * `parameter` - Hash function parameter
     /// * `epochs` - Slice of epoch numbers to process
-    /// * `num_chains` - Number of chains per epoch
+    /// * `num_chains` - Number of hash chains per epoch
     /// * `chain_length` - Length of each hash chain
     ///
     /// # Returns
-    /// Vec of leaf hashes, one per epoch, or None to use default implementation
-    fn try_compute_leaves_batched<PRF>(
-        _prf_key: &PRF::Key,
-        _parameter: &Self::Parameter,
-        _epochs: &[u32],
-        _num_chains: usize,
-        _chain_length: usize,
-    ) -> Option<Vec<Self::Domain>>
+    /// Vector of leaf hashes, one per epoch, in the same order as `epochs`
+    fn compute_tree_leaves<PRF>(
+        prf_key: &PRF::Key,
+        parameter: &Self::Parameter,
+        epochs: &[u32],
+        num_chains: usize,
+        chain_length: usize,
+    ) -> Vec<Self::Domain>
     where
-        PRF: crate::symmetric::prf::Pseudorandom,
+        PRF: Pseudorandom,
         PRF::Domain: Into<Self::Domain>,
-    {
-        None
-    }
-
-    /// Optional SIMD-optimized construction of a Merkle sub-tree.
-    ///
-    /// This provides a hook for hash function implementations to
-    /// replace the generic, scalar tree-building logic with a highly optimized,
-    /// backend-specific one that uses packing.
-    ///
-    /// The default implementation returns `None`, causing `HashSubTree::new` to
-    /// fall back to its generic parallel implementation.
-    fn try_new_subtree_packed<R: Rng>(
-        _rng: &mut R,
-        _lowest_layer: usize,
-        _depth: usize,
-        _start_index: usize,
-        _parameter: &Self::Parameter,
-        _lowest_layer_nodes: Vec<Self::Domain>,
-    ) -> Option<HashSubTree<Self>>
-    where
         Self: Sized,
     {
-        None
+        // Default scalar implementation: process each epoch in parallel
+        epochs
+            .par_iter()
+            .map(|&epoch| {
+                // For each epoch, walk all chains in parallel
+                let chain_ends: Vec<_> = (0..num_chains)
+                    .into_par_iter()
+                    .map(|c_idx| {
+                        let start = PRF::get_domain_element(prf_key, epoch, c_idx as u64).into();
+                        chain::<Self>(parameter, epoch, c_idx as u8, 0, chain_length - 1, &start)
+                    })
+                    .collect();
+                // Hash all chain ends together to get the leaf
+                Self::apply(parameter, &Self::tree_tweak(0, epoch), &chain_ends)
+            })
+            .collect()
     }
 
-    /// Function to check internal consistency of any given parameters
-    /// For testing only, and expected to panic if something is wrong.
+    /// Function to check internal consistency of any given parameters.
+    ///
+    /// This is for testing only and is expected to panic if something is wrong.
     #[cfg(test)]
     fn internal_consistency_check();
 }

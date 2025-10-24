@@ -210,30 +210,9 @@ where
         .map(|e| e as u32)
         .collect();
 
-    // Attempt to use the optimized batch computation path.
-    let chain_ends_hashes = TH::try_compute_leaves_batched::<PRF>(
-        prf_key,
-        parameter,
-        &epochs,
-        num_chains,
-        chain_length,
-    )
-    .unwrap_or_else(|| {
-        // Fallback to the generic parallel scalar implementation.
-        epochs
-            .par_iter()
-            .map(|&epoch| {
-                let chain_ends: Vec<_> = (0..num_chains)
-                    .into_par_iter()
-                    .map(|c_idx| {
-                        let start = PRF::get_domain_element(prf_key, epoch, c_idx as u64).into();
-                        chain::<TH>(parameter, epoch, c_idx as u8, 0, chain_length - 1, &start)
-                    })
-                    .collect();
-                TH::apply(parameter, &TH::tree_tweak(0, epoch), &chain_ends)
-            })
-            .collect()
-    });
+    // Compute chain ends for all epochs.
+    let chain_ends_hashes =
+        TH::compute_tree_leaves::<PRF>(prf_key, parameter, &epochs, num_chains, chain_length);
 
     // now that we have the hashes of all chain ends (= leafs of our tree), we can compute the bottom tree
     HashSubTree::new_bottom_tree(
