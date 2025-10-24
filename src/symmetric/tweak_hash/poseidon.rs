@@ -386,17 +386,30 @@ where
         let chain_perm = poseidon2_16();
         let sponge_perm = poseidon2_24();
 
+        let lengths = [
+            PARAMETER_LEN as u32,
+            TWEAK_LEN as u32,
+            NUM_CHUNKS as u32,
+            HASH_LEN as u32,
+        ];
+        let capacity_val =
+            poseidon_safe_domain_separator::<PackedF, _, MERGE_COMPRESSION_WIDTH, CAPACITY>(
+                &sponge_perm,
+                &lengths,
+            );
+
         epochs
             .par_chunks_exact(width)
             .zip(leaves.par_chunks_exact_mut(width))
             .for_each(|(epoch_chunk, leaves_chunk)| {
                 // 1. Generate chain starts and pack them.
-                let mut packed_chain_ends: [[PackedF; HASH_LEN]; NUM_CHUNKS] = array::from_fn(|c_idx| {
-                    let starts: [[F; HASH_LEN]; PackedF::WIDTH] = array::from_fn(|lane| {
-                        PRF::get_domain_element(prf_key, epoch_chunk[lane], c_idx as u64).into()
+                let mut packed_chain_ends: [[PackedF; HASH_LEN]; NUM_CHUNKS] =
+                    array::from_fn(|c_idx| {
+                        let starts: [[F; HASH_LEN]; PackedF::WIDTH] = array::from_fn(|lane| {
+                            PRF::get_domain_element(prf_key, epoch_chunk[lane], c_idx as u64).into()
+                        });
+                        pack_array(&starts)
                     });
-                    pack_array(&starts)
-                });
 
                 // 2. Walk all chains in parallel. `steps` is `chain_length - 1`.
                 for step in 0..chain_length - 1 {
@@ -417,43 +430,31 @@ where
                             [PARAMETER_LEN + TWEAK_LEN..PARAMETER_LEN + TWEAK_LEN + HASH_LEN]
                             .copy_from_slice(&packed_chain_ends[c_idx]);
 
-                        packed_chain_ends[c_idx] = poseidon_compress::<
-                            PackedF,
-                            _,
-                            CHAIN_COMPRESSION_WIDTH,
-                            HASH_LEN,
-                        >(&chain_perm, &packed_input_arr);
+                        packed_chain_ends[c_idx] =
+                            poseidon_compress::<PackedF, _, CHAIN_COMPRESSION_WIDTH, HASH_LEN>(
+                                &chain_perm,
+                                &packed_input_arr,
+                            );
                     }
                 }
 
                 // 3. Hash the packed chain ends to get packed leaves.
                 let packed_tree_tweak = array::from_fn::<_, TWEAK_LEN, _>(|t_idx| {
                     PackedF::from_fn(|lane| {
-                        Self::tree_tweak(0, epoch_chunk[lane])
-                            .to_field_elements::<TWEAK_LEN>()[t_idx]
+                        Self::tree_tweak(0, epoch_chunk[lane]).to_field_elements::<TWEAK_LEN>()
+                            [t_idx]
                     })
                 });
 
-                let mut packed_leaf_input = Vec::with_capacity(PARAMETER_LEN + TWEAK_LEN + NUM_CHUNKS * HASH_LEN);
+                let mut packed_leaf_input =
+                    Vec::with_capacity(PARAMETER_LEN + TWEAK_LEN + NUM_CHUNKS * HASH_LEN);
                 packed_leaf_input.extend_from_slice(&packed_parameter);
                 packed_leaf_input.extend_from_slice(&packed_tree_tweak);
                 for chunk in packed_chain_ends.iter() {
                     packed_leaf_input.extend_from_slice(chunk);
                 }
 
-                let lengths = [
-                    PARAMETER_LEN as u32,
-                    TWEAK_LEN as u32,
-                    NUM_CHUNKS as u32,
-                    HASH_LEN as u32,
-                ];
-                let capacity_val = poseidon_safe_domain_separator::<
-                    PackedF,
-                    _,
-                    MERGE_COMPRESSION_WIDTH,
-                    CAPACITY,
-                >(&sponge_perm, &lengths);
-                let packed_leaves = poseidon_sponge::<PackedF, _, MERGE_COMPRESSION_WIDTH, HASH_LEN>(
+                let packed_leaves = poseidon_sponge::<PackedF, _, _, _>(
                     &sponge_perm,
                     &capacity_val,
                     &packed_leaf_input,
@@ -467,7 +468,7 @@ where
         let remainder_start = (epochs.len() / width) * width;
         for (i, epoch) in epochs[remainder_start..].iter().enumerate() {
             let global_idx = remainder_start + i;
-            let chain_ends: Vec<Self::Domain> = (0..NUM_CHUNKS)
+            let chain_ends: Vec<_> = (0..NUM_CHUNKS)
                 .map(|c_idx| {
                     let start = PRF::get_domain_element(prf_key, *epoch, c_idx as u64).into();
                     chain::<Self>(parameter, *epoch, c_idx as u8, 0, chain_length - 1, &start)
@@ -509,16 +510,14 @@ where
                 |(chunk_idx, parents_chunk)| {
                     let p_idx_start = chunk_idx * width;
                     let c_idx_start = p_idx_start * 2;
-                    let prev_nodes = prev.nodes();
+                    let prev_nodes: &[[F; HASH_LEN]] = prev.nodes();
 
-                    let packed_left =
-                        pack_array(&array::from_fn::<_, { PackedF::WIDTH }, _>(|lane| {
-                            prev_nodes[c_idx_start + lane * 2]
-                        }));
-                    let packed_right =
-                        pack_array(&array::from_fn::<_, { PackedF::WIDTH }, _>(|lane| {
-                            prev_nodes[c_idx_start + lane * 2 + 1]
-                        }));
+                    let packed_left: [PackedF; HASH_LEN] = array::from_fn(|i| {
+                        PackedF::from_fn(|lane| prev_nodes[c_idx_start + lane * 2][i])
+                    });
+                    let packed_right: [PackedF; HASH_LEN] = array::from_fn(|i| {
+                        PackedF::from_fn(|lane| prev_nodes[c_idx_start + lane * 2 + 1][i])
+                    });
 
                     let packed_tweak: [PackedF; TWEAK_LEN] = array::from_fn(|t_idx| {
                         PackedF::from_fn(|lane| {
