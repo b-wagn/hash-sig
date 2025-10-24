@@ -131,8 +131,7 @@ where
     /// Public constructor for a hash sub-tree.
     ///
     /// This function acts as a dispatcher.
-    /// - It first attempts to use a highly-optimized, packed-SIMD implementation
-    /// if the `TweakableHash` backend provides one.
+    /// - It first attempts to use packed-SIMD implementation if the backend provides one.
     /// - If not, it falls back to a generic, parallel implementation.
     pub fn new_subtree<R: Rng>(
         rng: &mut R,
@@ -143,6 +142,8 @@ where
         lowest_layer_nodes: Vec<TH::Domain>,
     ) -> Self {
         // Try to delegate to a specialized, packed implementation first.
+        //
+        // This is the case for Poseidon2.
         if let Some(tree) = TH::try_new_subtree_packed(
             rng,
             lowest_layer,
@@ -155,6 +156,8 @@ where
         }
 
         // Fallback to generic scalar implementation if no packed version is available.
+        //
+        // TODO: For now, SIMD is not supported for Sha.
         Self::new_subtree_scalar(
             rng,
             lowest_layer,
