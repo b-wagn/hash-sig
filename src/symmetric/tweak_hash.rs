@@ -1,6 +1,8 @@
 use rand::Rng;
 use serde::{Serialize, de::DeserializeOwned};
 
+use crate::symmetric::tweak_hash_tree::HashSubTree;
+
 /// Trait to model a tweakable hash function.
 /// Such a function takes a public parameter, a tweak, and a
 /// message to be hashed. The tweak should be understood as an
@@ -38,6 +40,57 @@ pub trait TweakableHash {
         tweak: &Self::Tweak,
         message: &[Self::Domain],
     ) -> Self::Domain;
+
+    /// Optional SIMD-optimized batch computation of tree leaves.
+    ///
+    /// This method can be overridden by implementations to provide SIMD-accelerated
+    /// batch processing of multiple epochs. The default implementation falls back to
+    /// sequential scalar processing.
+    ///
+    /// # Arguments
+    /// * `prf_key` - PRF key for generating chain starts
+    /// * `parameter` - Hash function parameter
+    /// * `epochs` - Slice of epoch numbers to process
+    /// * `num_chains` - Number of chains per epoch
+    /// * `chain_length` - Length of each hash chain
+    ///
+    /// # Returns
+    /// Vec of leaf hashes, one per epoch, or None to use default implementation
+    fn try_compute_leaves_batched<PRF>(
+        _prf_key: &PRF::Key,
+        _parameter: &Self::Parameter,
+        _epochs: &[u32],
+        _num_chains: usize,
+        _chain_length: usize,
+    ) -> Option<Vec<Self::Domain>>
+    where
+        PRF: crate::symmetric::prf::Pseudorandom,
+        PRF::Domain: Into<Self::Domain>,
+    {
+        None
+    }
+
+    /// Optional SIMD-optimized construction of a Merkle sub-tree.
+    ///
+    /// This provides a hook for hash function implementations to
+    /// replace the generic, scalar tree-building logic with a highly optimized,
+    /// backend-specific one that uses packing.
+    ///
+    /// The default implementation returns `None`, causing `HashSubTree::new` to
+    /// fall back to its generic parallel implementation.
+    fn try_new_subtree_packed<R: Rng>(
+        _rng: &mut R,
+        _lowest_layer: usize,
+        _depth: usize,
+        _start_index: usize,
+        _parameter: &Self::Parameter,
+        _lowest_layer_nodes: Vec<Self::Domain>,
+    ) -> Option<HashSubTree<Self>>
+    where
+        Self: Sized,
+    {
+        None
+    }
 
     /// Function to check internal consistency of any given parameters
     /// For testing only, and expected to panic if something is wrong.

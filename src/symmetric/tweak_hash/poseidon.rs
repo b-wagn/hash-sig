@@ -1,13 +1,19 @@
-use p3_field::PrimeCharacteristicRing;
-use p3_field::PrimeField64;
+use core::array;
+
+use p3_field::{Algebra, PackedValue, PrimeCharacteristicRing, PrimeField64};
 use p3_symmetric::Permutation;
+use rand::Rng;
+use rayon::prelude::*;
 use serde::{Serialize, de::DeserializeOwned};
 
-use crate::F;
 use crate::TWEAK_SEPARATOR_FOR_CHAIN_HASH;
 use crate::TWEAK_SEPARATOR_FOR_TREE_HASH;
 use crate::poseidon2_16;
 use crate::poseidon2_24;
+use crate::symmetric::tweak_hash::chain;
+use crate::symmetric::tweak_hash_tree::HashSubTree;
+use crate::symmetric::tweak_hash_tree::HashTreeLayer;
+use crate::{F, PackedF};
 
 use super::TweakableHash;
 
@@ -63,37 +69,57 @@ impl PoseidonTweak {
     }
 }
 
-/// Poseidon Compression Function.
+/// Applies a packed 2-to-1 compression for Merkle tree construction.
+fn apply_packed_pair<const PARAMETER_LEN: usize, const HASH_LEN: usize, const TWEAK_LEN: usize>(
+    parameter: &[F; PARAMETER_LEN],
+    packed_tweak: &[PackedF; TWEAK_LEN],
+    packed_left: &[PackedF; HASH_LEN],
+    packed_right: &[PackedF; HASH_LEN],
+) -> [PackedF; HASH_LEN] {
+    let perm = poseidon2_24();
+
+    let input: Vec<PackedF> = parameter
+        .iter()
+        .map(|p| PackedF::from(*p))
+        .chain(packed_tweak.iter().copied())
+        .chain(packed_left.iter().copied())
+        .chain(packed_right.iter().copied())
+        .collect();
+
+    poseidon_compress::<PackedF, _, MERGE_COMPRESSION_WIDTH, HASH_LEN>(&perm, &input)
+}
+
+/// Poseidon Compression Function - Generic over Algebra<F>
 ///
 /// Computes:
 ///     PoseidonCompress(x) = Truncate(PoseidonPermute(x) + x)
 ///
-/// This function takes an input slice `x`, applies the Poseidon permutation,
-/// adds the original input back (as a feed-forward), and returns the first `OUT_LEN` elements.
+/// This function works generically over `A: Algebra<F>`, allowing it to process both:
+/// - Scalar fields (A = F)
+/// - Packed SIMD fields (A = PackedKoalaBearNeon, etc.)
+///
+/// This is the Plonky3 pattern that enables automatic SIMD optimization.
 ///
 /// - `WIDTH`: total state width (input length to permutation).
 /// - `OUT_LEN`: number of output elements to return.
-/// - `perm`: a Poseidon permutation over `[F; WIDTH]`.
+/// - `perm`: a Poseidon permutation over `[A; WIDTH]`.
 /// - `input`: slice of input values, must be `≤ WIDTH` and `≥ OUT_LEN`.
 ///
 /// ### Warning: Input Padding
 /// The `input` slice is **always silently padded with zeros** to match the permutation's `WIDTH`.
-/// This means that inputs that are distinct but become identical after zero-padding
-/// (e.g., `[A, B]` and `[A, B, 0]`) will produce the same hash. If your use case
-/// requires distinguishing between such inputs, you must handle it externally, for example,
-/// by encoding the input's length as part of the message.
 ///
 /// Returns: the first `OUT_LEN` elements of the permuted and compressed state.
 ///
 /// Panics:
 /// - If `input.len() < OUT_LEN`
 /// - If `OUT_LEN > WIDTH`
-pub fn poseidon_compress<P, const WIDTH: usize, const OUT_LEN: usize>(
+pub fn poseidon_compress<A, P, const WIDTH: usize, const OUT_LEN: usize>(
     perm: &P,
-    input: &[F],
-) -> [F; OUT_LEN]
+    input: &[A],
+) -> [A; OUT_LEN]
 where
-    P: Permutation<[F; WIDTH]>,
+    A: Algebra<F> + Copy,
+    P: Permutation<[A; WIDTH]>,
 {
     assert!(
         input.len() >= OUT_LEN,
@@ -101,7 +127,7 @@ where
     );
 
     // Copy the input into a fixed-width buffer, zero-padding unused elements if any.
-    let mut padded_input = [F::ZERO; WIDTH];
+    let mut padded_input = [A::ZERO; WIDTH];
     padded_input[..input.len()].copy_from_slice(input);
 
     // Start with the input as the initial state.
@@ -116,9 +142,7 @@ where
     }
 
     // Truncate and return the first `OUT_LEN` elements of the state.
-    state[..OUT_LEN]
-        .try_into()
-        .expect("OUT_LEN is larger than permutation width")
+    array::from_fn(|i| state[i])
 }
 
 /// Computes a Poseidon-based domain separator by compressing an array of `u32`
@@ -130,12 +154,13 @@ where
 /// - As this function operates on constants, its output can be **precomputed**
 ///   for significant performance gains, especially within a circuit.
 /// - If generalization is ever needed, a more generic and slower version should be used.
-fn poseidon_safe_domain_separator<P, const WIDTH: usize, const OUT_LEN: usize>(
+fn poseidon_safe_domain_separator<A, P, const WIDTH: usize, const OUT_LEN: usize>(
     perm: &P,
     params: &[u32; DOMAIN_PARAMETERS_LENGTH],
-) -> [F; OUT_LEN]
+) -> [A; OUT_LEN]
 where
-    P: Permutation<[F; WIDTH]>,
+    A: Algebra<F> + Copy,
+    P: Permutation<[A; WIDTH]>,
 {
     // Combine params into a single number in base 2^32
     //
@@ -153,10 +178,10 @@ where
     let input = std::array::from_fn::<_, 24, _>(|_| {
         let digit = (acc % F::ORDER_U64 as u128) as u64;
         acc /= F::ORDER_U64 as u128;
-        F::from_u64(digit)
+        A::from(F::from_u64(digit))
     });
 
-    poseidon_compress::<_, WIDTH, OUT_LEN>(perm, &input)
+    poseidon_compress::<A, _, WIDTH, OUT_LEN>(perm, &input)
 }
 
 /// Poseidon Sponge Hash Function.
@@ -177,13 +202,14 @@ where
 ///
 /// Panics:
 /// - If `capacity_value.len() >= WIDTH`
-fn poseidon_sponge<P, const WIDTH: usize, const OUT_LEN: usize>(
+fn poseidon_sponge<A, P, const WIDTH: usize, const OUT_LEN: usize>(
     perm: &P,
-    capacity_value: &[F],
-    input: &[F],
-) -> [F; OUT_LEN]
+    capacity_value: &[A],
+    input: &[A],
+) -> [A; OUT_LEN]
 where
-    P: Permutation<[F; WIDTH]>,
+    A: Algebra<F> + Copy,
+    P: Permutation<[A; WIDTH]>,
 {
     // The capacity length must be strictly smaller than the width to have a non-zero rate.
     // This check prevents a panic from subtraction underflow when calculating the rate.
@@ -199,10 +225,10 @@ where
     //
     // This is safe because the input's original length is effectively encoded
     // in the `capacity_value`, which serves as a domain separator.
-    input_vector.resize(input.len() + extra_elements, F::ZERO);
+    input_vector.resize(input.len() + extra_elements, A::ZERO);
 
     // initialize
-    let mut state = [F::ZERO; WIDTH];
+    let mut state = [A::ZERO; WIDTH];
     state[rate..].copy_from_slice(capacity_value);
 
     // absorb
@@ -219,8 +245,7 @@ where
         out.extend_from_slice(&state[..rate]);
         perm.permute_mut(&mut state);
     }
-    let slice = &out[0..OUT_LEN];
-    slice.try_into().expect("Length mismatch")
+    array::from_fn(|i| out[i])
 }
 
 /// A tweakable hash function implemented using Poseidon2
@@ -297,7 +322,7 @@ where
                     .chain(single.iter())
                     .copied()
                     .collect();
-                poseidon_compress::<_, CHAIN_COMPRESSION_WIDTH, HASH_LEN>(&perm, &combined_input)
+                poseidon_compress::<F, _, CHAIN_COMPRESSION_WIDTH, HASH_LEN>(&perm, &combined_input)
             }
 
             [left, right] => {
@@ -310,7 +335,7 @@ where
                     .chain(right.iter())
                     .copied()
                     .collect();
-                poseidon_compress::<_, MERGE_COMPRESSION_WIDTH, HASH_LEN>(&perm, &combined_input)
+                poseidon_compress::<F, _, MERGE_COMPRESSION_WIDTH, HASH_LEN>(&perm, &combined_input)
             }
 
             _ if message.len() > 2 => {
@@ -330,10 +355,10 @@ where
                     HASH_LEN as u32,
                 ];
                 let capacity_value =
-                    poseidon_safe_domain_separator::<_, MERGE_COMPRESSION_WIDTH, CAPACITY>(
+                    poseidon_safe_domain_separator::<F, _, MERGE_COMPRESSION_WIDTH, CAPACITY>(
                         &perm, &lengths,
                     );
-                poseidon_sponge::<_, MERGE_COMPRESSION_WIDTH, HASH_LEN>(
+                poseidon_sponge::<F, _, MERGE_COMPRESSION_WIDTH, HASH_LEN>(
                     &perm,
                     &capacity_value,
                     &combined_input,
@@ -341,6 +366,102 @@ where
             }
             _ => [F::ONE; HASH_LEN], // Unreachable case, added for safety
         }
+    }
+
+    fn try_compute_leaves_batched<PRF>(
+        prf_key: &PRF::Key,
+        parameter: &Self::Parameter,
+        epochs: &[u32],
+        num_chains: usize,
+        chain_length: usize,
+    ) -> Option<Vec<Self::Domain>>
+    where
+        PRF: crate::symmetric::prf::Pseudorandom,
+        PRF::Domain: Into<Self::Domain>,
+    {
+        // Ensure the compile-time const `NUM_CHUNKS` matches the runtime request.
+        if num_chains != NUM_CHUNKS {
+            return None;
+        }
+
+        let width = PackedF::WIDTH;
+        let mut leaves = vec![[F::ZERO; HASH_LEN]; epochs.len()];
+
+        // Process full SIMD-width chunks in parallel.
+        epochs.par_chunks_exact(width).zip(leaves.par_chunks_exact_mut(width))
+                    .for_each(|(epoch_chunk, leaves_chunk)| {
+                        // 1. Generate chain starts and pack them into SoA (Structure of Arrays) layout.
+                        let mut packed_chain_ends: [[PackedF; HASH_LEN]; NUM_CHUNKS] = [[PackedF::ZERO; HASH_LEN]; NUM_CHUNKS];
+                        for c_idx in 0..NUM_CHUNKS {
+                            let mut starts_soa: [[F; HASH_LEN]; PackedF::WIDTH] = [[F::ZERO; HASH_LEN]; PackedF::WIDTH];
+                            for lane in 0..width {
+                                starts_soa[lane] = PRF::get_domain_element(prf_key, epoch_chunk[lane], c_idx as u64).into();
+                            }
+                            // Transpose from [WIDTH][HASH_LEN] to [HASH_LEN][WIDTH] and pack.
+                            for h_idx in 0..HASH_LEN {
+                                packed_chain_ends[c_idx][h_idx] = PackedF::from_fn(|lane| starts_soa[lane][h_idx]);
+                            }
+                        }
+
+                        // 2. Walk all chains in parallel. `steps` is `chain_length - 1`.
+                        for step in 0..chain_length - 1 {
+                            for c_idx in 0..NUM_CHUNKS {
+                                let pos = (step + 1) as u8;
+                                let packed_tweak = array::from_fn::<_, TWEAK_LEN, _>(|t_idx| {
+                                    PackedF::from_fn(|lane| {
+                                        Self::chain_tweak(epoch_chunk[lane], c_idx as u8, pos).to_field_elements::<TWEAK_LEN>()[t_idx]
+                                    })
+                                });
+
+                                let packed_input: Vec<PackedF> = parameter.iter().map(|p| PackedF::from(*p))
+                                    .chain(packed_tweak)
+                                    .chain(packed_chain_ends[c_idx])
+                                    .collect();
+
+                                let perm = poseidon2_16();
+                                packed_chain_ends[c_idx] = poseidon_compress::<PackedF, _, CHAIN_COMPRESSION_WIDTH, HASH_LEN>(&perm, &packed_input);
+                            }
+                        }
+
+                        // 3. Hash the packed chain ends to get packed leaves.
+                        let packed_tree_tweak = array::from_fn::<_, TWEAK_LEN, _>(|t_idx| {
+                            PackedF::from_fn(|lane| {
+                                Self::tree_tweak(0, epoch_chunk[lane]).to_field_elements::<TWEAK_LEN>()[t_idx]
+                            })
+                        });
+                        let packed_leaf_input: Vec<PackedF> = parameter.iter().map(|p| PackedF::from(*p))
+                            .chain(packed_tree_tweak)
+                            .chain(packed_chain_ends.iter().flatten().copied())
+                            .collect();
+
+                        let perm = poseidon2_24();
+                        let lengths = [PARAMETER_LEN as u32, TWEAK_LEN as u32, NUM_CHUNKS as u32, HASH_LEN as u32];
+                        let capacity_val = poseidon_safe_domain_separator::<PackedF, _, MERGE_COMPRESSION_WIDTH, CAPACITY>(&perm, &lengths);
+                        let packed_leaves = poseidon_sponge::<PackedF, _, MERGE_COMPRESSION_WIDTH, HASH_LEN>(&perm, &capacity_val, &packed_leaf_input);
+
+                        // 4. Unpack the results back into the output slice.
+                        for h_idx in 0..HASH_LEN {
+                            let unpacked = packed_leaves[h_idx].as_slice();
+                            for lane in 0..width {
+                                leaves_chunk[lane][h_idx] = unpacked[lane];
+                            }
+                        }
+                    });
+
+        // Process any remaining epochs serially.
+        let remainder_start = (epochs.len() / width) * width;
+        for (i, epoch) in epochs[remainder_start..].iter().enumerate() {
+            let global_idx = remainder_start + i;
+            let chain_ends: Vec<Self::Domain> = (0..NUM_CHUNKS)
+                .map(|c_idx| {
+                    let start = PRF::get_domain_element(prf_key, *epoch, c_idx as u64).into();
+                    chain::<Self>(parameter, *epoch, c_idx as u8, 0, chain_length - 1, &start)
+                })
+                .collect();
+            leaves[global_idx] = Self::apply(parameter, &Self::tree_tweak(0, *epoch), &chain_ends);
+        }
+
+        Some(leaves)
     }
 
     #[cfg(test)]
@@ -376,6 +497,133 @@ where
             tweak_fe_bits >= bits_for_chain_tweak,
             "Poseidon Tweak Hash: not enough field elements to encode the chain tweak"
         );
+    }
+
+    fn try_new_subtree_packed<R: Rng>(
+        rng: &mut R,
+        lowest_layer: usize,
+        depth: usize,
+        start_index: usize,
+        parameter: &Self::Parameter,
+        lowest_layer_nodes: Vec<Self::Domain>,
+    ) -> Option<HashSubTree<Self>>
+    where
+        Self: Sized,
+    {
+        Some(new_subtree_packed::<
+            R,
+            PARAMETER_LEN,
+            HASH_LEN,
+            TWEAK_LEN,
+            CAPACITY,
+            NUM_CHUNKS,
+        >(
+            rng,
+            lowest_layer,
+            depth,
+            start_index,
+            parameter,
+            lowest_layer_nodes,
+        ))
+    }
+}
+
+/// Packed-SIMD implementation for building a Merkle sub-tree.
+fn new_subtree_packed<
+    R: Rng,
+    const PARAMETER_LEN: usize,
+    const HASH_LEN: usize,
+    const TWEAK_LEN: usize,
+    const CAPACITY: usize,
+    const NUM_CHUNKS: usize,
+>(
+    rng: &mut R,
+    lowest_layer: usize,
+    depth: usize,
+    start_index: usize,
+    parameter: &[F; PARAMETER_LEN],
+    lowest_layer_nodes: Vec<[F; HASH_LEN]>,
+) -> HashSubTree<PoseidonTweakHash<PARAMETER_LEN, HASH_LEN, TWEAK_LEN, CAPACITY, NUM_CHUNKS>>
+where
+    [F; PARAMETER_LEN]: Serialize + DeserializeOwned,
+    [F; HASH_LEN]: Serialize + DeserializeOwned,
+{
+    let width = PackedF::WIDTH;
+    let mut layers = Vec::with_capacity(depth + 1 - lowest_layer);
+    layers.push(HashTreeLayer::padded(rng, lowest_layer_nodes, start_index));
+
+    for level in lowest_layer..depth {
+        let prev = &layers[level - lowest_layer];
+        let parent_start = prev.start_index() >> 1;
+        let num_parents = prev.nodes().len() / 2;
+
+        let mut parents = vec![[F::ZERO; HASH_LEN]; num_parents];
+
+        parents
+            .par_chunks_exact_mut(width)
+            .enumerate()
+            .for_each(|(chunk_idx, parents_chunk)| {
+                let p_idx_start = chunk_idx * width;
+                let c_idx_start = p_idx_start * 2;
+
+                // Pack left and right children
+                let prev_nodes: &[[F; HASH_LEN]] = prev.nodes();
+                let packed_left: [PackedF; HASH_LEN] = array::from_fn(|h_idx| {
+                    PackedF::from_fn(|lane| prev_nodes[c_idx_start + lane * 2][h_idx])
+                });
+                let packed_right: [PackedF; HASH_LEN] = array::from_fn(|h_idx| {
+                    PackedF::from_fn(|lane| prev_nodes[c_idx_start + lane * 2 + 1][h_idx])
+                });
+
+                // Pack tweaks
+                let packed_tweak: [PackedF; TWEAK_LEN] = array::from_fn(|t_idx| {
+                    PackedF::from_fn(|lane| {
+                        let parent_pos = (parent_start + p_idx_start + lane) as u32;
+                        let tweak = PoseidonTweak::TreeTweak {
+                            level: (level as u8) + 1,
+                            pos_in_level: parent_pos,
+                        };
+                        tweak.to_field_elements::<TWEAK_LEN>()[t_idx]
+                    })
+                });
+
+                // Apply packed hash
+                let packed_parents =
+                    apply_packed_pair(parameter, &packed_tweak, &packed_left, &packed_right);
+
+                // Unpack results
+                for h_idx in 0..HASH_LEN {
+                    let unpacked = packed_parents[h_idx].as_slice();
+                    for lane in 0..width {
+                        parents_chunk[lane][h_idx] = unpacked[lane];
+                    }
+                }
+            });
+
+        let remainder_start = (num_parents / width) * width;
+        for i in remainder_start..num_parents {
+            let children = &prev.nodes()[i * 2..i * 2 + 2];
+            let parent_pos = (parent_start + i) as u32;
+            let tweak = PoseidonTweak::TreeTweak {
+                level: (level as u8) + 1,
+                pos_in_level: parent_pos,
+            };
+            parents[i] = PoseidonTweakHash::<
+                PARAMETER_LEN,
+                HASH_LEN,
+                TWEAK_LEN,
+                CAPACITY,
+                NUM_CHUNKS,
+            >::apply(parameter, &tweak, children);
+        }
+
+        layers.push(HashTreeLayer::padded(rng, parents, parent_start));
+    }
+
+    HashSubTree {
+        depth,
+        lowest_layer,
+        layers,
     }
 }
 

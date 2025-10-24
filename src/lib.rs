@@ -1,3 +1,4 @@
+use p3_field::Field;
 use p3_koala_bear::{
     KoalaBear, Poseidon2KoalaBear, default_koalabear_poseidon2_16, default_koalabear_poseidon2_24,
 };
@@ -11,6 +12,7 @@ pub const TWEAK_SEPARATOR_FOR_TREE_HASH: u8 = 0x01;
 pub const TWEAK_SEPARATOR_FOR_CHAIN_HASH: u8 = 0x00;
 
 type F = KoalaBear;
+pub(crate) type PackedF = <F as Field>::Packing;
 
 pub(crate) mod hypercube;
 pub(crate) mod inc_encoding;

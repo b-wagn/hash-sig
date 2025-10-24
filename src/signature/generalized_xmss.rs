@@ -205,37 +205,35 @@ where
     let chain_length = IE::BASE;
 
     // the range of epochs covered by that bottom tree
-    let epoch_range_start = bottom_tree_index * leafs_per_bottom_tree;
-    let epoch_range_end = epoch_range_start + leafs_per_bottom_tree;
-    let epoch_range = epoch_range_start..epoch_range_end;
-
-    // parallelize the chain ends hash computation for each epoch in the interval for that bottom tree
-    let chain_ends_hashes = epoch_range
-        .into_par_iter()
-        .map(|epoch| {
-            // each epoch has a number of chains
-            // parallelize the chain ends computation for each chain
-            let chain_ends = (0..num_chains)
-                .into_par_iter()
-                .map(|chain_index| {
-                    // each chain start is just a PRF evaluation
-                    let start =
-                        PRF::get_domain_element(prf_key, epoch as u32, chain_index as u64).into();
-                    // walk the chain to get the public chain end
-                    chain::<TH>(
-                        parameter,
-                        epoch as u32,
-                        chain_index as u8,
-                        0,
-                        chain_length - 1,
-                        &start,
-                    )
-                })
-                .collect::<Vec<_>>();
-            // build hash of chain ends / public keys
-            TH::apply(parameter, &TH::tree_tweak(0, epoch as u32), &chain_ends)
-        })
+    let epoch_start = bottom_tree_index * leafs_per_bottom_tree;
+    let epochs: Vec<u32> = (epoch_start..epoch_start + leafs_per_bottom_tree)
+        .map(|e| e as u32)
         .collect();
+
+    // Attempt to use the optimized batch computation path.
+    let chain_ends_hashes = TH::try_compute_leaves_batched::<PRF>(
+        prf_key,
+        parameter,
+        &epochs,
+        num_chains,
+        chain_length,
+    )
+    .unwrap_or_else(|| {
+        // Fallback to the generic parallel scalar implementation.
+        epochs
+            .par_iter()
+            .map(|&epoch| {
+                let chain_ends: Vec<_> = (0..num_chains)
+                    .into_par_iter()
+                    .map(|c_idx| {
+                        let start = PRF::get_domain_element(prf_key, epoch, c_idx as u64).into();
+                        chain::<TH>(parameter, epoch, c_idx as u8, 0, chain_length - 1, &start)
+                    })
+                    .collect();
+                TH::apply(parameter, &TH::tree_tweak(0, epoch), &chain_ends)
+            })
+            .collect()
+    });
 
     // now that we have the hashes of all chain ends (= leafs of our tree), we can compute the bottom tree
     HashSubTree::new_bottom_tree(

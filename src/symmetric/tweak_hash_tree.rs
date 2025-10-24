@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 /// based on tweakable hash function
 #[derive(Serialize, Deserialize)]
 #[serde(bound = "")]
-struct HashTreeLayer<TH: TweakableHash> {
+pub(crate) struct HashTreeLayer<TH: TweakableHash> {
     start_index: usize,
     nodes: Vec<TH::Domain>,
 }
@@ -32,7 +32,7 @@ impl<TH: TweakableHash> HashTreeLayer<TH> {
     /// - With this alignment every parent is formed from exactly two children,
     ///   so upper layers can be built with exact size-2 chunks, with no edge cases.
     #[inline]
-    fn padded<R: Rng>(rng: &mut R, nodes: Vec<TH::Domain>, start_index: usize) -> Self {
+    pub(crate) fn padded<R: Rng>(rng: &mut R, nodes: Vec<TH::Domain>, start_index: usize) -> Self {
         // End index of the provided contiguous run (inclusive).
         let end_index = start_index + nodes.len() - 1;
 
@@ -68,6 +68,18 @@ impl<TH: TweakableHash> HashTreeLayer<TH> {
             nodes: out,
         }
     }
+
+    /// Returns the start index of this layer.
+    #[inline]
+    pub(crate) fn start_index(&self) -> usize {
+        self.start_index
+    }
+
+    /// Returns a reference to the nodes in this layer.
+    #[inline]
+    pub(crate) fn nodes(&self) -> &[TH::Domain] {
+        &self.nodes
+    }
 }
 
 /// Sub-tree of a sparse Hash-Tree based on a tweakable hashes.
@@ -88,18 +100,18 @@ pub struct HashSubTree<TH: TweakableHash> {
     /// Depth of the full tree. The tree can have at most
     /// 1 << depth many leafs. The full tree has depth + 1
     /// many layers, whereas the sub-tree can have less.
-    depth: usize,
+    pub(crate) depth: usize,
 
     /// The lowest layer of the sub-tree. If this represents the
     /// full tree, then lowest_layer = 0.
-    lowest_layer: usize,
+    pub(crate) lowest_layer: usize,
 
     /// Layers of the hash tree, starting with the
     /// lowest_level. That is, layers[i] contains the nodes
     /// in level i + lowest_level of the tree. For the full tree
     /// (lowest_layer = 0), the leafs are not included: the
     /// bottom layer is the list of hashes of all leafs
-    layers: Vec<HashTreeLayer<TH>>,
+    pub(crate) layers: Vec<HashTreeLayer<TH>>,
 }
 
 /// Opening in a hash-tree: a co-path, without the leaf
@@ -116,6 +128,43 @@ impl<TH> HashSubTree<TH>
 where
     TH: TweakableHash,
 {
+    /// Public constructor for a hash sub-tree.
+    ///
+    /// This function acts as a dispatcher.
+    /// - It first attempts to use a highly-optimized, packed-SIMD implementation
+    /// if the `TweakableHash` backend provides one.
+    /// - If not, it falls back to a generic, parallel implementation.
+    pub fn new_subtree<R: Rng>(
+        rng: &mut R,
+        lowest_layer: usize,
+        depth: usize,
+        start_index: usize,
+        parameter: &TH::Parameter,
+        lowest_layer_nodes: Vec<TH::Domain>,
+    ) -> Self {
+        // Try to delegate to a specialized, packed implementation first.
+        if let Some(tree) = TH::try_new_subtree_packed(
+            rng,
+            lowest_layer,
+            depth,
+            start_index,
+            parameter,
+            lowest_layer_nodes.clone(),
+        ) {
+            return tree;
+        }
+
+        // Fallback to generic scalar implementation if no packed version is available.
+        Self::new_subtree_scalar(
+            rng,
+            lowest_layer,
+            depth,
+            start_index,
+            parameter,
+            lowest_layer_nodes,
+        )
+    }
+
     /// Function to compute a (sub-tree of a) hash-tree, which contains the top layers
     /// of a hash tree. The function takes the nodes in layer `lowest_layer` as input.
     /// They correspond to the (hashes of) the leafs if `lowest_layer = 0`.
@@ -137,7 +186,7 @@ where
     /// Note: The RNG is used for generating nodes used for padding in the case of
     /// sparse trees. They could as well be fixed, and hence the RNG does not need
     /// to be cryptographically secure for this function.
-    pub fn new_subtree<R: Rng>(
+    pub fn new_subtree_scalar<R: Rng>(
         rng: &mut R,
         lowest_layer: usize,
         depth: usize,
