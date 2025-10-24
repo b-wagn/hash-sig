@@ -391,13 +391,12 @@ where
             .zip(leaves.par_chunks_exact_mut(width))
             .for_each(|(epoch_chunk, leaves_chunk)| {
                 // 1. Generate chain starts and pack them.
-                let mut packed_chain_ends = [[PackedF::ZERO; HASH_LEN]; NUM_CHUNKS];
-                for c_idx in 0..NUM_CHUNKS {
+                let mut packed_chain_ends: [[PackedF; HASH_LEN]; NUM_CHUNKS] = array::from_fn(|c_idx| {
                     let starts: [[F; HASH_LEN]; PackedF::WIDTH] = array::from_fn(|lane| {
                         PRF::get_domain_element(prf_key, epoch_chunk[lane], c_idx as u64).into()
                     });
-                    packed_chain_ends[c_idx] = pack_array(&starts);
-                }
+                    pack_array(&starts)
+                });
 
                 // 2. Walk all chains in parallel. `steps` is `chain_length - 1`.
                 for step in 0..chain_length - 1 {
