@@ -512,13 +512,13 @@ where
                     let prev_nodes = prev.nodes();
 
                     let packed_left =
-                        pack_array::<HASH_LEN>(&array::from_fn::<_, { PackedF::WIDTH }, _>(
-                            |lane| prev_nodes[c_idx_start + lane * 2],
-                        ));
+                        pack_array(&array::from_fn::<_, { PackedF::WIDTH }, _>(|lane| {
+                            prev_nodes[c_idx_start + lane * 2]
+                        }));
                     let packed_right =
-                        pack_array::<HASH_LEN>(&array::from_fn::<_, { PackedF::WIDTH }, _>(
-                            |lane| prev_nodes[c_idx_start + lane * 2 + 1],
-                        ));
+                        pack_array(&array::from_fn::<_, { PackedF::WIDTH }, _>(|lane| {
+                            prev_nodes[c_idx_start + lane * 2 + 1]
+                        }));
 
                     let packed_tweak: [PackedF; TWEAK_LEN] = array::from_fn(|t_idx| {
                         PackedF::from_fn(|lane| {
