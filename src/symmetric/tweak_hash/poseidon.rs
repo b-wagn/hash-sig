@@ -559,13 +559,7 @@ where
                     level: (level as u8) + 1,
                     pos_in_level: parent_pos,
                 };
-                parents[i] = PoseidonTweakHash::<
-                    PARAMETER_LEN,
-                    HASH_LEN,
-                    TWEAK_LEN,
-                    CAPACITY,
-                    NUM_CHUNKS,
-                >::apply(parameter, &tweak, children);
+                parents[i] = Self::apply(parameter, &tweak, children);
             }
 
             layers.push(HashTreeLayer::padded(rng, parents, parent_start));
