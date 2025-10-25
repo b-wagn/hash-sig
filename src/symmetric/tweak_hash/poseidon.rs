@@ -27,8 +27,8 @@ fn pack_array<const N: usize>(data: &[[F; N]]) -> [PackedF; N] {
 
 #[inline]
 fn unpack_array<const N: usize>(packed_data: &[PackedF; N], output: &mut [[F; N]]) {
-    for i in 0..N {
-        let unpacked_v = packed_data[i].as_slice();
+    for (i, data) in packed_data.iter().enumerate().take(N) {
+        let unpacked_v = data.as_slice();
         for j in 0..PackedF::WIDTH {
             output[j][i] = unpacked_v[j];
         }
@@ -373,6 +373,7 @@ where
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn compute_tree_leaves<PRF>(
         prf_key: &PRF::Key,
         parameter: &Self::Parameter,
