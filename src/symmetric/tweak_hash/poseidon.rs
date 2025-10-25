@@ -444,13 +444,12 @@ where
                     })
                 });
 
-                let mut packed_leaf_input =
-                    Vec::with_capacity(PARAMETER_LEN + TWEAK_LEN + NUM_CHUNKS * HASH_LEN);
-                packed_leaf_input.extend_from_slice(&packed_parameter);
-                packed_leaf_input.extend_from_slice(&packed_tree_tweak);
-                for chunk in packed_chain_ends.iter() {
-                    packed_leaf_input.extend_from_slice(chunk);
-                }
+                let packed_leaf_input: Vec<_> = packed_parameter
+                    .iter()
+                    .chain(packed_tree_tweak.iter())
+                    .chain(packed_chain_ends.iter().flatten())
+                    .copied()
+                    .collect();
 
                 let packed_leaves = poseidon_sponge::<PackedF, _, _, _>(
                     &sponge_perm,
