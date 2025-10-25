@@ -5,13 +5,17 @@ use serde::{Serialize, de::DeserializeOwned};
 use crate::symmetric::prf::Pseudorandom;
 
 /// Trait to model a tweakable hash function.
+/// Such a function takes a public parameter, a tweak, and a
+/// message to be hashed. The tweak should be understood as an
+/// address for domain separation.
 ///
-/// This trait defines the core operations for a hash function that uses
-/// tweaks for domain separation. A tweak acts as an address or identifier
-/// that ensures different applications of the hash produce distinct outputs.
+/// In our setting, we require the support of hashing lists of
+/// hashes. Therefore, we just define a type `Domain` and the
+/// hash function maps from [Domain] to Domain.
 ///
-/// The hash function maps `[Domain]` → `Domain`, supporting both single
-/// values and lists of values.
+/// We also require that the tweak hash already specifies how
+/// to obtain distinct tweaks for applications in chains and
+/// applications in Merkle trees.
 pub trait TweakableHash {
     /// Public parameter type for the hash function
     type Parameter: Copy + Sized + Send + Sync + Serialize + DeserializeOwned;
@@ -42,15 +46,7 @@ pub trait TweakableHash {
     /// Chain tweaks are guaranteed to be distinct from tree tweaks.
     fn chain_tweak(epoch: u32, chain_index: u8, pos_in_chain: u8) -> Self::Tweak;
 
-    /// Applies the tweakable hash to a parameter, tweak, and message.
-    ///
-    /// # Arguments
-    /// * `parameter` - Public parameter for the hash function
-    /// * `tweak` - Domain separator (tree or chain tweak)
-    /// * `message` - Input message (one or more domain elements)
-    ///
-    /// # Returns
-    /// Single domain element representing the hash output
+    /// Applies the tweakable hash to parameter, tweak, and message.
     fn apply(
         parameter: &Self::Parameter,
         tweak: &Self::Tweak,
@@ -61,16 +57,6 @@ pub trait TweakableHash {
     ///
     /// This method has a default scalar implementation that processes epochs in parallel.
     /// Hash functions implementing `PackedTweakableHash` can override this to use SIMD.
-    ///
-    /// # Arguments
-    /// * `prf_key` - PRF key for generating chain starting points
-    /// * `parameter` - Hash function parameter
-    /// * `epochs` - Slice of epoch numbers to process
-    /// * `num_chains` - Number of hash chains per epoch
-    /// * `chain_length` - Length of each hash chain
-    ///
-    /// # Returns
-    /// Vector of leaf hashes, one per epoch, in the same order as `epochs`
     fn compute_tree_leaves<PRF>(
         prf_key: &PRF::Key,
         parameter: &Self::Parameter,

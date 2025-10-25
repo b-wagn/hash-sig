@@ -411,7 +411,9 @@ where
 
                 // Walk all chains in parallel. `steps` is `chain_length - 1`.
                 for step in 0..chain_length - 1 {
-                    for c_idx in 0..NUM_CHUNKS {
+                    for (c_idx, packed_chain_end) in
+                        packed_chain_ends.iter_mut().enumerate().take(NUM_CHUNKS)
+                    {
                         let pos = (step + 1) as u8;
                         let packed_tweak = array::from_fn::<_, TWEAK_LEN, _>(|t_idx| {
                             PackedF::from_fn(|lane| {
@@ -426,9 +428,9 @@ where
                             .copy_from_slice(&packed_tweak);
                         packed_input_arr
                             [PARAMETER_LEN + TWEAK_LEN..PARAMETER_LEN + TWEAK_LEN + HASH_LEN]
-                            .copy_from_slice(&packed_chain_ends[c_idx]);
+                            .copy_from_slice(packed_chain_end);
 
-                        packed_chain_ends[c_idx] =
+                        *packed_chain_end =
                             poseidon_compress::<PackedF, _, CHAIN_COMPRESSION_WIDTH, HASH_LEN>(
                                 &chain_perm,
                                 &packed_input_arr,

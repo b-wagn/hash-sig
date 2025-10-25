@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 /// based on tweakable hash function
 #[derive(Serialize, Deserialize)]
 #[serde(bound = "")]
-pub(crate) struct HashTreeLayer<TH: TweakableHash> {
+struct HashTreeLayer<TH: TweakableHash> {
     start_index: usize,
     nodes: Vec<TH::Domain>,
 }
@@ -88,18 +88,18 @@ pub struct HashSubTree<TH: TweakableHash> {
     /// Depth of the full tree. The tree can have at most
     /// 1 << depth many leafs. The full tree has depth + 1
     /// many layers, whereas the sub-tree can have less.
-    pub(crate) depth: usize,
+    depth: usize,
 
     /// The lowest layer of the sub-tree. If this represents the
     /// full tree, then lowest_layer = 0.
-    pub(crate) lowest_layer: usize,
+    lowest_layer: usize,
 
     /// Layers of the hash tree, starting with the
     /// lowest_level. That is, layers[i] contains the nodes
     /// in level i + lowest_level of the tree. For the full tree
     /// (lowest_layer = 0), the leafs are not included: the
     /// bottom layer is the list of hashes of all leafs
-    pub(crate) layers: Vec<HashTreeLayer<TH>>,
+    layers: Vec<HashTreeLayer<TH>>,
 }
 
 /// Opening in a hash-tree: a co-path, without the leaf
