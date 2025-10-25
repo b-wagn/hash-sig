@@ -376,10 +376,10 @@ where
     {
         // Check if we can use the SIMD implementation.
         //
-        // The packed implementation requires num_chains == NUM_CHUNKS.
+        // The packed implementation requires num_chains <= NUM_CHUNKS.
         //
         // It's designed to work with a specific encoding dimension.
-        if num_chains != NUM_CHUNKS {
+        if num_chains > NUM_CHUNKS {
             // Fall back to default scalar implementation from the base trait
             return epochs
                 .par_iter()
@@ -438,11 +438,11 @@ where
                         pack_array(&starts)
                     });
 
-                // Walk all chains in parallel. `steps` is `chain_length - 1`.
-                for step in 0..chain_length - 1 {
-                    for (c_idx, packed_chain_end) in
-                        packed_chain_ends.iter_mut().enumerate().take(NUM_CHUNKS)
-                    {
+                // Process one full chain at a time to maximize cache/register usage.
+                for (c_idx, packed_chain_end) in
+                    packed_chain_ends.iter_mut().enumerate().take(num_chains)
+                {
+                    for step in 0..chain_length - 1 {
                         let pos = (step + 1) as u8;
                         let packed_tweak = array::from_fn::<_, TWEAK_LEN, _>(|t_idx| {
                             PackedF::from_fn(|lane| {
@@ -452,11 +452,14 @@ where
                         });
 
                         let mut packed_input_arr = [PackedF::ZERO; CHAIN_COMPRESSION_WIDTH];
-                        packed_input_arr[..PARAMETER_LEN].copy_from_slice(&packed_parameter);
-                        packed_input_arr[PARAMETER_LEN..PARAMETER_LEN + TWEAK_LEN]
+                        let mut current_pos = 0;
+                        packed_input_arr[current_pos..current_pos + PARAMETER_LEN]
+                            .copy_from_slice(&packed_parameter);
+                        current_pos += PARAMETER_LEN;
+                        packed_input_arr[current_pos..current_pos + TWEAK_LEN]
                             .copy_from_slice(&packed_tweak);
-                        packed_input_arr
-                            [PARAMETER_LEN + TWEAK_LEN..PARAMETER_LEN + TWEAK_LEN + HASH_LEN]
+                        current_pos += TWEAK_LEN;
+                        packed_input_arr[current_pos..current_pos + HASH_LEN]
                             .copy_from_slice(packed_chain_end);
 
                         *packed_chain_end =
