@@ -371,11 +371,37 @@ where
         PRF: crate::symmetric::prf::Pseudorandom,
         PRF::Domain: Into<Self::Domain>,
     {
-        assert_eq!(
-            num_chains, NUM_CHUNKS,
-            "Poseidon packed implementation requires num_chains == NUM_CHUNKS"
-        );
+        // Check if we can use the SIMD implementation.
+        //
+        // The packed implementation requires num_chains == NUM_CHUNKS.
+        //
+        // It's designed to work with a specific encoding dimension.
+        if num_chains != NUM_CHUNKS {
+            // Fall back to default scalar implementation from the base trait
+            return epochs
+                .par_iter()
+                .map(|&epoch| {
+                    let chain_ends: Vec<_> = (0..num_chains)
+                        .into_par_iter()
+                        .map(|c_idx| {
+                            let start =
+                                PRF::get_domain_element(prf_key, epoch, c_idx as u64).into();
+                            chain::<Self>(
+                                parameter,
+                                epoch,
+                                c_idx as u8,
+                                0,
+                                chain_length - 1,
+                                &start,
+                            )
+                        })
+                        .collect();
+                    Self::apply(parameter, &Self::tree_tweak(0, epoch), &chain_ends)
+                })
+                .collect();
+        }
 
+        // Use SIMD-accelerated implementation
         let width = PackedF::WIDTH;
         let mut leaves = vec![[F::ZERO; HASH_LEN]; epochs.len()];
 
