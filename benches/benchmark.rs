@@ -11,7 +11,7 @@ use benchmark_sha::bench_function_sha;
 criterion_group!(
     benches,
     bench_function_poseidon_top_level,
-    // bench_function_sha,
-    // bench_function_poseidon
+    bench_function_sha,
+    bench_function_poseidon
 );
 criterion_main!(benches);
