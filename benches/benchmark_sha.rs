@@ -6,8 +6,7 @@ use rand::Rng;
 use hashsig::{
     MESSAGE_LENGTH,
     signature::{
-        SignatureScheme,
-        SignatureSchemeSecretKey,
+        SignatureScheme, SignatureSchemeSecretKey,
         generalized_xmss::instantiations_sha::{
             lifetime_2_to_the_18::{
                 target_sum::{
