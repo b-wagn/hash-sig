@@ -81,7 +81,7 @@ impl PoseidonTweak {
     }
 }
 
-/// Poseidon Compression Function - Generic over Algebra<F>
+/// Poseidon Compression Function
 ///
 /// Computes:
 ///     PoseidonCompress(x) = Truncate(PoseidonPermute(x) + x)
@@ -142,6 +142,10 @@ where
 /// Computes a Poseidon-based domain separator by compressing an array of `u32`
 /// values using a fixed Poseidon instance.
 ///
+/// This function works generically over `A: Algebra<F>`, allowing it to process both:
+/// - Scalar fields,
+/// - Packed SIMD fields
+///
 /// ### Usage constraints
 /// - This function is private because it's tailored to a very specific case:
 ///   the Poseidon2 instance with arity 24 and a fixed 4-word input.
@@ -178,23 +182,29 @@ where
     poseidon_compress::<A, _, WIDTH, OUT_LEN>(perm, &input)
 }
 
-/// Poseidon Sponge Hash Function.
+/// Poseidon Sponge Hash Function
 ///
 /// Absorbs an arbitrary-length input using the Poseidon sponge construction
 /// and outputs `OUT_LEN` field elements. Domain separation is achieved by
 /// injecting a `capacity_value` into the state.
 ///
+/// This function works generically over `A: Algebra<F>`, allowing it to process both:
+/// - Scalar fields,
+/// - Packed SIMD fields
+///
+/// ### Parameters
 /// - `WIDTH`: sponge state width.
 /// - `OUT_LEN`: number of output elements.
-/// - `perm`: Poseidon permutation over `[F; WIDTH]`.
-/// - `capacity_value`: values to occupy the capacity part of the state (must be ≤ `WIDTH`).
+/// - `perm`: Poseidon permutation over `[A; WIDTH]`.
+/// - `capacity_value`: values to occupy the capacity part of the state (must be < `WIDTH`).
 /// - `input`: message to hash (any length).
 ///
+/// ### Sponge Construction
 /// This follows the classic sponge structure:
-/// - Absorption: inputs are added chunk-by-chunk into the first `rate` elements of the state.
-/// - Squeezing: outputs are read from the first `rate` elements of the state, permuted as needed.
+/// - **Absorption**: inputs are added chunk-by-chunk into the first `rate` elements of the state.
+/// - **Squeezing**: outputs are read from the first `rate` elements of the state, permuted as needed.
 ///
-/// Panics:
+/// ### Panics
 /// - If `capacity_value.len() >= WIDTH`
 fn poseidon_sponge<A, P, const WIDTH: usize, const OUT_LEN: usize>(
     perm: &P,
