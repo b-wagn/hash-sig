@@ -32,18 +32,12 @@ pub trait TweakableHash {
     /// Generates a random domain element.
     fn rand_domain<R: Rng>(rng: &mut R) -> Self::Domain;
 
-    /// Returns a tweak to be used in Merkle tree node hashing.
-    ///
-    /// The tweak is derived from the node's level and position within that level.
-    ///
-    /// Tree tweaks are guaranteed to be distinct from chain tweaks.
+    /// Returns a tweak to be used in the Merkle tree.
+    /// Note: this is assumed to be distinct from the outputs of chain_tweak
     fn tree_tweak(level: u8, pos_in_level: u32) -> Self::Tweak;
 
-    /// Returns a tweak to be used in hash chain iteration.
-    ///
-    /// The tweak is derived from the epoch, chain index, and position within the chain.
-    ///
-    /// Chain tweaks are guaranteed to be distinct from tree tweaks.
+    /// Returns a tweak to be used in chains.
+    /// Note: this is assumed to be distinct from the outputs of tree_tweak
     fn chain_tweak(epoch: u32, chain_index: u8, pos_in_chain: u8) -> Self::Tweak;
 
     /// Applies the tweakable hash to parameter, tweak, and message.

@@ -32,7 +32,7 @@ impl<TH: TweakableHash> HashTreeLayer<TH> {
     /// - With this alignment every parent is formed from exactly two children,
     ///   so upper layers can be built with exact size-2 chunks, with no edge cases.
     #[inline]
-    pub(crate) fn padded<R: Rng>(rng: &mut R, nodes: Vec<TH::Domain>, start_index: usize) -> Self {
+    fn padded<R: Rng>(rng: &mut R, nodes: Vec<TH::Domain>, start_index: usize) -> Self {
         // End index of the provided contiguous run (inclusive).
         let end_index = start_index + nodes.len() - 1;
 

@@ -87,8 +87,8 @@ impl PoseidonTweak {
 ///     PoseidonCompress(x) = Truncate(PoseidonPermute(x) + x)
 ///
 /// This function works generically over `A: Algebra<F>`, allowing it to process both:
-/// - Scalar fields (A = F)
-/// - Packed SIMD fields (A = PackedKoalaBearNeon, etc.)
+/// - Scalar fields,
+/// - Packed SIMD fields
 ///
 /// This is the Plonky3 pattern that enables automatic SIMD optimization.
 ///
@@ -134,7 +134,9 @@ where
     }
 
     // Truncate and return the first `OUT_LEN` elements of the state.
-    array::from_fn(|i| state[i])
+    state[..OUT_LEN]
+        .try_into()
+        .expect("OUT_LEN is larger than permutation width")
 }
 
 /// Computes a Poseidon-based domain separator by compressing an array of `u32`
@@ -237,7 +239,8 @@ where
         out.extend_from_slice(&state[..rate]);
         perm.permute_mut(&mut state);
     }
-    array::from_fn(|i| out[i])
+    let slice = &out[0..OUT_LEN];
+    slice.try_into().expect("Length mismatch")
 }
 
 /// A tweakable hash function implemented using Poseidon2
