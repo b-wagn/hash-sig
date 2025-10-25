@@ -384,21 +384,31 @@ where
         PRF: crate::symmetric::prf::Pseudorandom,
         PRF::Domain: Into<Self::Domain>,
     {
-        // Check if we can use the SIMD implementation.
+        // CONDITIONAL DISPATCH: SIMD vs SCALAR
         //
-        // The packed implementation requires num_chains <= NUM_CHUNKS.
+        // Check if the SIMD implementation can be used for these parameters.
         //
-        // It's designed to work with a specific encoding dimension.
-        if num_chains > NUM_CHUNKS {
-            // Fall back to default scalar implementation from the base trait
+        // The SIMD path is designed for specific encoding dimensions.
+        // It requires num_chains to match NUM_CHUNKS exactly.
+        //
+        // If parameters don't match, we fall back to the scalar implementation.
+        // This ensures compatibility with all encoding schemes.
+        if num_chains != NUM_CHUNKS {
+            // Scalar fallback path for incompatible parameters.
+            //
+            // Process each epoch independently in parallel.
             return epochs
                 .par_iter()
                 .map(|&epoch| {
+                    // For this epoch, walk all chains in parallel.
                     let chain_ends: Vec<_> = (0..num_chains)
                         .into_par_iter()
                         .map(|c_idx| {
+                            // Get the chain starting point from the PRF.
                             let start =
                                 PRF::get_domain_element(prf_key, epoch, c_idx as u64).into();
+
+                            // Walk the chain from start to end.
                             chain::<Self>(
                                 parameter,
                                 epoch,
@@ -409,20 +419,42 @@ where
                             )
                         })
                         .collect();
+
+                    // Hash all chain ends to produce the tree leaf for this epoch.
                     Self::apply(parameter, &Self::tree_tweak(0, epoch), &chain_ends)
                 })
                 .collect();
         }
 
-        // Use SIMD-accelerated implementation
+        // SIMD-ACCELERATED IMPLEMENTATION
+        //
+        // This path leverages architecture-specific SIMD instructions.
+        // `PackedF` represents multiple field elements processed in parallel.
+        //
+        // The key point: process multiple epochs simultaneously using SIMD.
+        // Each SIMD lane corresponds to one epoch.
+
+        // Determine SIMD width based on architecture.
         let width = PackedF::WIDTH;
+
+        // Allocate output buffer for all leaves.
         let mut leaves = vec![[F::ZERO; HASH_LEN]; epochs.len()];
 
+        // PREPARE PACKED CONSTANTS
+
+        // Broadcast the hash parameter to all SIMD lanes.
+        // Each lane will use the same parameter for its epoch.
         let packed_parameter: [PackedF; PARAMETER_LEN] =
             array::from_fn(|i| PackedF::from(parameter[i]));
+
+        // Create Poseidon permutation instances.
+        // - Width-16 for chain compression,
+        // - Width-24 for sponge hashing.
         let chain_perm = poseidon2_16();
         let sponge_perm = poseidon2_24();
 
+        // Compute domain separator for the sponge construction.
+        // This ensures different use cases produce different outputs.
         let lengths = [
             PARAMETER_LEN as u32,
             TWEAK_LEN as u32,
@@ -435,25 +467,51 @@ where
                 &lengths,
             );
 
+        // PARALLEL SIMD PROCESSING
+        //
+        // Process epochs in batches of size `width`.
+        // Each batch is handled by one thread.
+        // Within each batch, SIMD processes `width` epochs simultaneously.
         epochs
             .par_chunks_exact(width)
             .zip(leaves.par_chunks_exact_mut(width))
             .for_each(|(epoch_chunk, leaves_chunk)| {
-                // Generate chain starts and pack them.
+                // STEP 1: GENERATE AND PACK CHAIN STARTING POINTS
+                //
+                // For each chain, generate starting points for all epochs in the chunk.
+                // Use vertical packing: transpose from [lane][element] to [element][lane].
+                //
+                // This layout enables efficient SIMD operations across epochs.
+
                 let mut packed_chain_ends: [[PackedF; HASH_LEN]; NUM_CHUNKS] =
                     array::from_fn(|c_idx| {
+                        // Generate starting points for this chain across all epochs.
                         let starts: [[F; HASH_LEN]; PackedF::WIDTH] = array::from_fn(|lane| {
                             PRF::get_domain_element(prf_key, epoch_chunk[lane], c_idx as u64).into()
                         });
+
+                        // Transpose to vertical packing for SIMD efficiency.
                         pack_array(&starts)
                     });
 
-                // Process one full chain at a time to maximize cache/register usage.
+                // STEP 2: WALK CHAINS IN PARALLEL USING SIMD
+                //
+                // For each chain, walk all epochs simultaneously using SIMD.
+                //
+                // Cache strategy: process one chain at a time to maximize locality.
+                // All epochs for that chain stay in registers across iterations.
+
                 for (c_idx, packed_chain_end) in
                     packed_chain_ends.iter_mut().enumerate().take(num_chains)
                 {
+                    // Walk this chain for `chain_length - 1` steps.
+                    // The starting point is step 0, so we need `chain_length - 1` iterations.
                     for step in 0..chain_length - 1 {
+                        // Current position in the chain.
                         let pos = (step + 1) as u8;
+
+                        // Generate tweaks for all epochs in this SIMD batch.
+                        // Each lane gets a tweak specific to its epoch.
                         let packed_tweak = array::from_fn::<_, TWEAK_LEN, _>(|t_idx| {
                             PackedF::from_fn(|lane| {
                                 Self::chain_tweak(epoch_chunk[lane], c_idx as u8, pos)
@@ -461,17 +519,27 @@ where
                             })
                         });
 
+                        // Assemble the packed input for the hash function.
+                        // Layout: [parameter | tweak | current_value]
                         let mut packed_input_arr = [PackedF::ZERO; CHAIN_COMPRESSION_WIDTH];
                         let mut current_pos = 0;
+
+                        // Copy parameter into the input buffer.
                         packed_input_arr[current_pos..current_pos + PARAMETER_LEN]
                             .copy_from_slice(&packed_parameter);
                         current_pos += PARAMETER_LEN;
+
+                        // Copy tweak into the input buffer.
                         packed_input_arr[current_pos..current_pos + TWEAK_LEN]
                             .copy_from_slice(&packed_tweak);
                         current_pos += TWEAK_LEN;
+
+                        // Copy current chain value into the input buffer.
                         packed_input_arr[current_pos..current_pos + HASH_LEN]
                             .copy_from_slice(packed_chain_end);
 
+                        // Apply the hash function to advance the chain.
+                        // This single call processes all epochs in parallel.
                         *packed_chain_end =
                             poseidon_compress::<PackedF, _, CHAIN_COMPRESSION_WIDTH, HASH_LEN>(
                                 &chain_perm,
@@ -480,7 +548,15 @@ where
                     }
                 }
 
-                // Hash the packed chain ends to get packed leaves.
+                // STEP 3: HASH CHAIN ENDS TO PRODUCE TREE LEAVES
+                //
+                // All chains have been walked to their endpoints.
+                // Now hash all chain ends together to form the tree leaf.
+                //
+                // This uses the sponge construction for variable-length input.
+
+                // Generate tree tweaks for all epochs.
+                // Level 0 indicates this is a bottom-layer leaf in the tree.
                 let packed_tree_tweak = array::from_fn::<_, TWEAK_LEN, _>(|t_idx| {
                     PackedF::from_fn(|lane| {
                         Self::tree_tweak(0, epoch_chunk[lane]).to_field_elements::<TWEAK_LEN>()
@@ -488,6 +564,8 @@ where
                     })
                 });
 
+                // Assemble the sponge input.
+                // Layout: [parameter | tree_tweak | all_chain_ends]
                 let packed_leaf_input: Vec<_> = packed_parameter
                     .iter()
                     .chain(packed_tree_tweak.iter())
@@ -495,26 +573,42 @@ where
                     .copied()
                     .collect();
 
+                // Apply the sponge hash to produce the leaf.
+                // This absorbs all chain ends and squeezes out the final hash.
                 let packed_leaves = poseidon_sponge::<PackedF, _, _, _>(
                     &sponge_perm,
                     &capacity_val,
                     &packed_leaf_input,
                 );
 
-                // Unpack the results back into the output slice.
+                // STEP 4: UNPACK RESULTS TO SCALAR REPRESENTATION
+                //
+                // Convert from vertical packing back to scalar layout.
+                // Each lane becomes one leaf in the output slice.
+
                 unpack_array(&packed_leaves, leaves_chunk);
             });
 
-        // Process any remaining epochs serially.
+        // HANDLE REMAINDER EPOCHS
+        //
+        // If the total number of epochs is not divisible by the SIMD width,
+        // process the remaining epochs using scalar code.
+        //
+        // This ensures correctness for all input sizes.
+
         let remainder_start = (epochs.len() / width) * width;
         for (i, epoch) in epochs[remainder_start..].iter().enumerate() {
             let global_idx = remainder_start + i;
+
+            // Walk all chains for this epoch.
             let chain_ends: Vec<_> = (0..NUM_CHUNKS)
                 .map(|c_idx| {
                     let start = PRF::get_domain_element(prf_key, *epoch, c_idx as u64).into();
                     chain::<Self>(parameter, *epoch, c_idx as u8, 0, chain_length - 1, &start)
                 })
                 .collect();
+
+            // Hash the chain ends to produce the leaf.
             leaves[global_idx] = Self::apply(parameter, &Self::tree_tweak(0, *epoch), &chain_ends);
         }
 
