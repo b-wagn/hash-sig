@@ -53,8 +53,6 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
 
     // Get the prepared epoch interval to ensure we only sign at valid epochs
     let prepared_interval = sk.get_prepared_interval();
-    let prepared_start = prepared_interval.start as u32;
-    let prepared_end = prepared_interval.end as u32;
 
     group.bench_function("- sign", |b| {
         b.iter(|| {
@@ -62,7 +60,8 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
             let message = rng.random();
 
             // Sample random epoch within the prepared interval
-            let epoch = rng.random_range(prepared_start..prepared_end);
+            let epoch =
+                rng.random_range(prepared_interval.start as u32..prepared_interval.end as u32);
 
             // Benchmark signing
             let _ = S::sign(black_box(&sk), black_box(epoch), black_box(&message));
@@ -74,7 +73,8 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
         .map(|_| {
             let message = rng.random();
             // Use epochs within the prepared interval
-            let epoch = rng.random_range(prepared_start..prepared_end);
+            let epoch =
+                rng.random_range(prepared_interval.start as u32..prepared_interval.end as u32);
 
             let signature = S::sign(&sk, epoch, &message).expect("Signing should succeed");
             (epoch, message, signature)
