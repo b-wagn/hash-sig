@@ -70,9 +70,17 @@ pub trait TweakableHash {
                 // For each epoch, walk all chains in parallel
                 let chain_ends: Vec<_> = (0..num_chains)
                     .into_par_iter()
-                    .map(|c_idx| {
-                        let start = PRF::get_domain_element(prf_key, epoch, c_idx as u64).into();
-                        chain::<Self>(parameter, epoch, c_idx as u8, 0, chain_length - 1, &start)
+                    .map(|chain_index| {
+                        let start =
+                            PRF::get_domain_element(prf_key, epoch, chain_index as u64).into();
+                        chain::<Self>(
+                            parameter,
+                            epoch,
+                            chain_index as u8,
+                            0,
+                            chain_length - 1,
+                            &start,
+                        )
                     })
                     .collect();
                 // Hash all chain ends together to get the leaf
