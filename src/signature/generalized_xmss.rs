@@ -291,26 +291,22 @@ where
         // bottom trees differently, as we want to keep them in our key. While building the bottom
         // trees, we generate all hash chains using our PRF key, and hash their ends to get the
         // leafs of our bottom trees. This is done in `bottom_tree_from_prf_key`.
-        let (left_bottom_tree, right_bottom_tree) = rayon::join(
-            || {
-                bottom_tree_from_prf_key::<PRF, IE, TH, LOG_LIFETIME>(
-                    &prf_key,
-                    start_bottom_tree_index,
-                    &parameter,
-                )
-            },
-            || {
-                bottom_tree_from_prf_key::<PRF, IE, TH, LOG_LIFETIME>(
-                    &prf_key,
-                    start_bottom_tree_index + 1,
-                    &parameter,
-                )
-            },
-        );
-        let left_bottom_tree_index = start_bottom_tree_index;
-
         let mut roots_of_bottom_trees = Vec::with_capacity(num_bottom_trees);
+
+        let left_bottom_tree_index = start_bottom_tree_index;
+        let left_bottom_tree = bottom_tree_from_prf_key::<PRF, IE, TH, LOG_LIFETIME>(
+            &prf_key,
+            left_bottom_tree_index,
+            &parameter,
+        );
         roots_of_bottom_trees.push(left_bottom_tree.root());
+
+        let right_bottom_tree_index = start_bottom_tree_index + 1;
+        let right_bottom_tree = bottom_tree_from_prf_key::<PRF, IE, TH, LOG_LIFETIME>(
+            &prf_key,
+            right_bottom_tree_index,
+            &parameter,
+        );
         roots_of_bottom_trees.push(right_bottom_tree.root());
 
         // the rest of the bottom trees in parallel
