@@ -23,7 +23,7 @@ pub trait TweakableHash {
     /// Tweak type for domain separation
     type Tweak;
 
-    /// Domain element type (output and input to the hash)
+    /// Domain element type (defines output and input types to the hash)
     type Domain: Copy + PartialEq + Sized + Send + Sync + Serialize + DeserializeOwned;
 
     /// Generates a random public parameter.
