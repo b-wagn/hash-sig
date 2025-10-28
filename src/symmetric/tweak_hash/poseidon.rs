@@ -9,6 +9,7 @@ use crate::TWEAK_SEPARATOR_FOR_CHAIN_HASH;
 use crate::TWEAK_SEPARATOR_FOR_TREE_HASH;
 use crate::poseidon2_16;
 use crate::poseidon2_24;
+use crate::symmetric::prf::Pseudorandom;
 use crate::symmetric::tweak_hash::chain;
 use crate::{F, PackedF};
 
@@ -421,7 +422,6 @@ where
         }
     }
 
-    #[allow(clippy::too_many_lines)]
     fn compute_tree_leaves<PRF>(
         prf_key: &PRF::Key,
         parameter: &Self::Parameter,
@@ -430,7 +430,7 @@ where
         chain_length: usize,
     ) -> Vec<Self::Domain>
     where
-        PRF: crate::symmetric::prf::Pseudorandom,
+        PRF: Pseudorandom,
         PRF::Domain: Into<Self::Domain>,
     {
         // Verify that num_chains matches the encoding dimension.
