@@ -385,47 +385,12 @@ where
         PRF: crate::symmetric::prf::Pseudorandom,
         PRF::Domain: Into<Self::Domain>,
     {
-        // CONDITIONAL DISPATCH: SIMD vs SCALAR
-        //
-        // Check if the SIMD implementation can be used for these parameters.
-        //
-        // The SIMD path is designed for specific encoding dimensions.
-        // It requires num_chains to match NUM_CHUNKS exactly.
-        //
-        // If parameters don't match, we fall back to the scalar implementation.
-        // This ensures compatibility with all encoding schemes.
-        if num_chains != NUM_CHUNKS {
-            // Scalar fallback path for incompatible parameters.
-            //
-            // Process each epoch independently in parallel.
-            return epochs
-                .par_iter()
-                .map(|&epoch| {
-                    // For this epoch, walk all chains in parallel.
-                    let chain_ends: Vec<_> = (0..num_chains)
-                        .into_par_iter()
-                        .map(|c_idx| {
-                            // Get the chain starting point from the PRF.
-                            let start =
-                                PRF::get_domain_element(prf_key, epoch, c_idx as u64).into();
-
-                            // Walk the chain from start to end.
-                            chain::<Self>(
-                                parameter,
-                                epoch,
-                                c_idx as u8,
-                                0,
-                                chain_length - 1,
-                                &start,
-                            )
-                        })
-                        .collect();
-
-                    // Hash all chain ends to produce the tree leaf for this epoch.
-                    Self::apply(parameter, &Self::tree_tweak(0, epoch), &chain_ends)
-                })
-                .collect();
-        }
+        // Verify that num_chains matches the encoding dimension.
+        assert_eq!(
+            num_chains, NUM_CHUNKS,
+            "Poseidon SIMD implementation requires num_chains == NUM_CHUNKS. Got num_chains={}, NUM_CHUNKS={}",
+            num_chains, NUM_CHUNKS
+        );
 
         // SIMD-ACCELERATED IMPLEMENTATION
         //
