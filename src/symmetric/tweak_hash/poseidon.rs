@@ -497,7 +497,7 @@ where
                 //
                 // This layout enables efficient SIMD operations across epochs.
 
-                let mut packed_chain_ends: [[PackedF; HASH_LEN]; NUM_CHUNKS] =
+                let mut packed_chains: [[PackedF; HASH_LEN]; NUM_CHUNKS] =
                     array::from_fn(|c_idx| {
                         // Generate starting points for this chain across all epochs.
                         let starts: [[F; HASH_LEN]; PackedF::WIDTH] = array::from_fn(|lane| {
@@ -511,12 +511,14 @@ where
                 // STEP 2: WALK CHAINS IN PARALLEL USING SIMD
                 //
                 // For each chain, walk all epochs simultaneously using SIMD.
+                // The chains start at their initial values and are walked step-by-step
+                // until they reach their endpoints.
                 //
                 // Cache strategy: process one chain at a time to maximize locality.
                 // All epochs for that chain stay in registers across iterations.
 
-                for (chain_index, packed_chain_end) in
-                    packed_chain_ends.iter_mut().enumerate().take(num_chains)
+                for (chain_index, packed_chain) in
+                    packed_chains.iter_mut().enumerate().take(num_chains)
                 {
                     // Walk this chain for `chain_length - 1` steps.
                     // The starting point is step 0, so we need `chain_length - 1` iterations.
@@ -535,29 +537,29 @@ where
 
                         // Assemble the packed input for the hash function.
                         // Layout: [parameter | tweak | current_value]
-                        let mut packed_input_arr = [PackedF::ZERO; CHAIN_COMPRESSION_WIDTH];
+                        let mut packed_input = [PackedF::ZERO; CHAIN_COMPRESSION_WIDTH];
                         let mut current_pos = 0;
 
                         // Copy parameter into the input buffer.
-                        packed_input_arr[current_pos..current_pos + PARAMETER_LEN]
+                        packed_input[current_pos..current_pos + PARAMETER_LEN]
                             .copy_from_slice(&packed_parameter);
                         current_pos += PARAMETER_LEN;
 
                         // Copy tweak into the input buffer.
-                        packed_input_arr[current_pos..current_pos + TWEAK_LEN]
+                        packed_input[current_pos..current_pos + TWEAK_LEN]
                             .copy_from_slice(&packed_tweak);
                         current_pos += TWEAK_LEN;
 
                         // Copy current chain value into the input buffer.
-                        packed_input_arr[current_pos..current_pos + HASH_LEN]
-                            .copy_from_slice(packed_chain_end);
+                        packed_input[current_pos..current_pos + HASH_LEN]
+                            .copy_from_slice(packed_chain);
 
                         // Apply the hash function to advance the chain.
                         // This single call processes all epochs in parallel.
-                        *packed_chain_end =
+                        *packed_chain =
                             poseidon_compress::<PackedF, _, CHAIN_COMPRESSION_WIDTH, HASH_LEN>(
                                 &chain_perm,
-                                &packed_input_arr,
+                                &packed_input,
                             );
                     }
                 }
@@ -583,7 +585,7 @@ where
                 let packed_leaf_input: Vec<_> = packed_parameter
                     .iter()
                     .chain(packed_tree_tweak.iter())
-                    .chain(packed_chain_ends.iter().flatten())
+                    .chain(packed_chains.iter().flatten())
                     .copied()
                     .collect();
 
