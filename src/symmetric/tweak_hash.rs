@@ -50,7 +50,6 @@ pub trait TweakableHash {
     /// Computes bottom tree leaves by walking hash chains for multiple epochs.
     ///
     /// This method has a default scalar implementation that processes epochs in parallel.
-    /// Hash functions implementing `PackedTweakableHash` can override this to use SIMD.
     fn compute_tree_leaves<PRF>(
         prf_key: &PRF::Key,
         parameter: &Self::Parameter,
