@@ -20,11 +20,55 @@ const CHAIN_COMPRESSION_WIDTH: usize = 16;
 /// The state width for merging two hashes in a tree or for the sponge construction.
 const MERGE_COMPRESSION_WIDTH: usize = 24;
 
+/// Packs scalar arrays into SIMD-friendly vertical layout.
+///
+/// Transposes from horizontal layout `[[F; N]; WIDTH]` to vertical layout `[PackedF; N]`.
+///
+/// Input layout (horizontal): each row is one complete array
+/// ```text
+/// data[0] = [a0, a1, a2, ..., aN]
+/// data[1] = [b0, b1, b2, ..., bN]
+/// data[2] = [c0, c1, c2, ..., cN]
+/// ...
+/// ```
+///
+/// Output layout (vertical): each PackedF holds one element from each array
+/// ```text
+/// result[0] = PackedF([a0, b0, c0, ...])  // All first elements
+/// result[1] = PackedF([a1, b1, c1, ...])  // All second elements
+/// result[2] = PackedF([a2, b2, c2, ...])  // All third elements
+/// ...
+/// ```
+///
+/// This vertical packing enables efficient SIMD operations where a single instruction
+/// processes the same element position across multiple arrays simultaneously.
 #[inline]
 fn pack_array<const N: usize>(data: &[[F; N]]) -> [PackedF; N] {
     array::from_fn(|i| PackedF::from_fn(|j| data[j][i]))
 }
 
+/// Unpacks SIMD vertical layout back into scalar arrays.
+///
+/// Transposes from vertical layout `[PackedF; N]` to horizontal layout `[[F; N]; WIDTH]`.
+///
+/// This is the inverse operation of `pack_array`. The output buffer must be preallocated
+/// with size `[WIDTH][N]` where `WIDTH = PackedF::WIDTH`.
+///
+/// Input layout (vertical): each PackedF holds one element from each array
+/// ```text
+/// packed_data[0] = PackedF([a0, b0, c0, ...])
+/// packed_data[1] = PackedF([a1, b1, c1, ...])
+/// packed_data[2] = PackedF([a2, b2, c2, ...])
+/// ...
+/// ```
+///
+/// Output layout (horizontal): each row is one complete array
+/// ```text
+/// output[0] = [a0, a1, a2, ..., aN]
+/// output[1] = [b0, b1, b2, ..., bN]
+/// output[2] = [c0, c1, c2, ..., cN]
+/// ...
+/// ```
 #[inline]
 fn unpack_array<const N: usize>(packed_data: &[PackedF; N], output: &mut [[F; N]]) {
     for (i, data) in packed_data.iter().enumerate().take(N) {
