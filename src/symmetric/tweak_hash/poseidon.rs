@@ -90,7 +90,7 @@ impl PoseidonTweak {
 /// - Scalar fields,
 /// - Packed SIMD fields
 ///
-/// This is the Plonky3 pattern that enables automatic SIMD optimization.
+/// This follows the Plonky3 pattern that enables automatic SIMD optimization.
 ///
 /// - `WIDTH`: total state width (input length to permutation).
 /// - `OUT_LEN`: number of output elements to return.
