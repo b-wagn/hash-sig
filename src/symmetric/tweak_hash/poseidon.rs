@@ -99,6 +99,10 @@ impl PoseidonTweak {
 ///
 /// ### Warning: Input Padding
 /// The `input` slice is **always silently padded with zeros** to match the permutation's `WIDTH`.
+/// This means that inputs that are distinct but become identical after zero-padding
+/// (e.g., `[A, B]` and `[A, B, 0]`) will produce the same hash. If your use case
+/// requires distinguishing between such inputs, you must handle it externally, for example,
+/// by encoding the input's length as part of the message.
 ///
 /// Returns: the first `OUT_LEN` elements of the permuted and compressed state.
 ///
