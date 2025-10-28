@@ -564,7 +564,7 @@ where
 
         let remainder_start = (epochs.len() / width) * width;
         for (i, epoch) in epochs[remainder_start..].iter().enumerate() {
-            let global_idx = remainder_start + i;
+            let global_index = remainder_start + i;
 
             // Walk all chains for this epoch.
             let chain_ends: Vec<_> = (0..NUM_CHUNKS)
@@ -575,7 +575,8 @@ where
                 .collect();
 
             // Hash the chain ends to produce the leaf.
-            leaves[global_idx] = Self::apply(parameter, &Self::tree_tweak(0, *epoch), &chain_ends);
+            leaves[global_index] =
+                Self::apply(parameter, &Self::tree_tweak(0, *epoch), &chain_ends);
         }
 
         leaves
