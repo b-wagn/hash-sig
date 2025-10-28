@@ -467,7 +467,7 @@ where
                 // Cache strategy: process one chain at a time to maximize locality.
                 // All epochs for that chain stay in registers across iterations.
 
-                for (c_idx, packed_chain_end) in
+                for (chain_index, packed_chain_end) in
                     packed_chain_ends.iter_mut().enumerate().take(num_chains)
                 {
                     // Walk this chain for `chain_length - 1` steps.
@@ -480,7 +480,7 @@ where
                         // Each lane gets a tweak specific to its epoch.
                         let packed_tweak = array::from_fn::<_, TWEAK_LEN, _>(|t_idx| {
                             PackedF::from_fn(|lane| {
-                                Self::chain_tweak(epoch_chunk[lane], c_idx as u8, pos)
+                                Self::chain_tweak(epoch_chunk[lane], chain_index as u8, pos)
                                     .to_field_elements::<TWEAK_LEN>()[t_idx]
                             })
                         });
