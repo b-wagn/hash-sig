@@ -1,5 +1,6 @@
+use p3_keccak::Keccak256Hash;
+use p3_symmetric::CryptographicHasher;
 use serde::{Serialize, de::DeserializeOwned};
-use sha3::{Digest, Sha3_256};
 
 use crate::{TWEAK_SEPARATOR_FOR_CHAIN_HASH, TWEAK_SEPARATOR_FOR_TREE_HASH};
 
@@ -101,20 +102,22 @@ where
         tweak: &Self::Tweak,
         message: &[Self::Domain],
     ) -> Self::Domain {
-        let mut hasher = Sha3_256::new();
+        // Setup hasher
+        let hasher = Keccak256Hash;
 
-        // add the parameter and tweak
-        hasher.update(parameter);
-        hasher.update(tweak.to_bytes());
+        // Collect all input bytes
+        // - parameter
+        // - tweak
+        // - message to be hashed
+        let combined: Vec<u8> = parameter
+            .iter()
+            .chain(tweak.to_bytes().iter())
+            .chain(message.iter().flat_map(|m| m.iter()))
+            .copied()
+            .collect();
 
-        // now add the actual message to be hashed
-        for m in message {
-            hasher.update(m);
-        }
-
-        // finalize the hash, and take as many bytes as we need
-        let result = hasher.finalize();
-        result[0..HASH_LEN].try_into().unwrap()
+        // Hash and take as many bytes as we need
+        hasher.hash_iter(combined)[..HASH_LEN].try_into().unwrap()
     }
 
     #[cfg(test)]

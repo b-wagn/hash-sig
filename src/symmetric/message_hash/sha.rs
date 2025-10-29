@@ -1,11 +1,11 @@
 use crate::{
     MESSAGE_LENGTH, TWEAK_SEPARATOR_FOR_MESSAGE_HASH, symmetric::message_hash::bytes_to_chunks,
 };
+use p3_keccak::Keccak256Hash;
+use p3_symmetric::CryptographicHasher;
 use serde::{Serialize, de::DeserializeOwned};
 
 use super::MessageHash;
-
-use sha3::{Digest, Sha3_256};
 
 /// A message hash implemented using SHA3
 /// All lengths must be given in Bytes.
@@ -47,24 +47,20 @@ where
         randomness: &Self::Randomness,
         message: &[u8; MESSAGE_LENGTH],
     ) -> Vec<u8> {
-        let mut hasher = Sha3_256::new();
+        let hasher = Keccak256Hash;
 
-        // first add randomness
-        hasher.update(randomness);
+        // Collect all input bytes
+        let combined: Vec<u8> = randomness
+            .iter()
+            .chain(parameter.iter())
+            .chain([TWEAK_SEPARATOR_FOR_MESSAGE_HASH].iter())
+            .chain(epoch.to_le_bytes().iter())
+            .chain(message.iter())
+            .copied()
+            .collect();
 
-        // now add the parameter
-        hasher.update(parameter);
-
-        // now add tweak (= domain separator + epoch)
-        // domain separator: this is a message hash tweak.
-        hasher.update([TWEAK_SEPARATOR_FOR_MESSAGE_HASH]);
-        hasher.update(epoch.to_le_bytes());
-
-        // now add the actual message to be hashed
-        hasher.update(message);
-
-        // finalize the hash, and take as many bytes as we need
-        let hash = hasher.finalize();
+        // Hash and take as many bytes as we need
+        let hash = hasher.hash_iter(combined);
         // turn the bytes in the hash into chunks
         bytes_to_chunks(&hash[0..NUM_CHUNKS * CHUNK_SIZE / 8], CHUNK_SIZE)
     }

@@ -1,6 +1,7 @@
 use super::Pseudorandom;
+use p3_keccak::Keccak256Hash;
+use p3_symmetric::CryptographicHasher;
 use serde::{Serialize, de::DeserializeOwned};
-use sha3::{Digest, Sha3_256};
 
 const KEY_LENGTH: usize = 32; // 32 bytes
 const PRF_DOMAIN_SEP: [u8; 16] = [
@@ -29,27 +30,29 @@ where
     }
 
     fn get_domain_element(key: &Self::Key, epoch: u32, index: u64) -> Self::Domain {
-        let mut hasher = Sha3_256::new();
+        // Setup hasher
+        let hasher = Keccak256Hash;
 
-        // Hash the domain separator
-        hasher.update(PRF_DOMAIN_SEP);
-
-        // Another domain separator for distinguishing the two types of elements
+        // Collect all input bytes
+        // - Domain separator
+        // - Another domain separator for distinguishing the two types of elements
         // that we generate: domain elements and randomness
-        hasher.update(PRF_DOMAIN_SEP_DOMAIN_ELEMENT);
+        // - Key
+        // - Epoch
+        // - Index
+        let combined: Vec<u8> = PRF_DOMAIN_SEP
+            .iter()
+            .chain(PRF_DOMAIN_SEP_DOMAIN_ELEMENT.iter())
+            .chain(key.iter())
+            .chain(epoch.to_be_bytes().iter())
+            .chain(index.to_be_bytes().iter())
+            .copied()
+            .collect();
 
-        // Hash the key
-        hasher.update(key);
-
-        // Hash the epoch
-        hasher.update(epoch.to_be_bytes());
-
-        // Hash the index
-        hasher.update(index.to_be_bytes());
-
-        // Finalize and convert to output
-        let result = hasher.finalize();
-        result[..DOMAIN_LENGTH].try_into().unwrap()
+        // Hash and convert to output
+        hasher.hash_iter(combined)[..DOMAIN_LENGTH]
+            .try_into()
+            .unwrap()
     }
 
     fn get_randomness(
@@ -58,30 +61,31 @@ where
         message: &[u8; crate::MESSAGE_LENGTH],
         counter: u64,
     ) -> Self::Randomness {
-        let mut hasher = Sha3_256::new();
+        // Setup hasher
+        let hasher = Keccak256Hash;
 
-        // Hash the domain separator
-        hasher.update(PRF_DOMAIN_SEP);
-
-        // Another domain separator for distinguishing the two types of elements
+        // Collect all input bytes
+        // - Domain separator
+        // - Another domain separator for distinguishing the two types of elements
         // that we generate: domain elements and randomness
-        hasher.update(PRF_DOMAIN_SEP_RANDOMNESS);
+        // - Key
+        // - Epoch
+        // - Message
+        // - Counter
+        let combined: Vec<u8> = PRF_DOMAIN_SEP
+            .iter()
+            .chain(PRF_DOMAIN_SEP_RANDOMNESS.iter())
+            .chain(key.iter())
+            .chain(epoch.to_be_bytes().iter())
+            .chain(message.iter())
+            .chain(counter.to_be_bytes().iter())
+            .copied()
+            .collect();
 
-        // Hash the key
-        hasher.update(key);
-
-        // Hash the epoch
-        hasher.update(epoch.to_be_bytes());
-
-        // Hash the message
-        hasher.update(message);
-
-        // Hash the counter
-        hasher.update(counter.to_be_bytes());
-
-        // Finalize and convert to output
-        let result = hasher.finalize();
-        result[..RAND_LENGTH].try_into().unwrap()
+        // Hash and convert to output
+        hasher.hash_iter(combined)[..RAND_LENGTH]
+            .try_into()
+            .unwrap()
     }
 
     #[cfg(test)]
