@@ -47,6 +47,7 @@ where
         randomness: &Self::Randomness,
         message: &[u8; MESSAGE_LENGTH],
     ) -> Vec<u8> {
+        // Setup hasher
         let hasher = Keccak256Hash;
 
         // Collect all input bytes
@@ -58,7 +59,7 @@ where
         let combined: Vec<u8> = randomness
             .iter()
             .chain(parameter.iter())
-            .chain([TWEAK_SEPARATOR_FOR_MESSAGE_HASH].iter())
+            .chain(std::iter::once(&TWEAK_SEPARATOR_FOR_MESSAGE_HASH))
             .chain(epoch.to_le_bytes().iter())
             .chain(message.iter())
             .copied()
