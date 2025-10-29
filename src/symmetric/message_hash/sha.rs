@@ -50,6 +50,11 @@ where
         let hasher = Keccak256Hash;
 
         // Collect all input bytes
+        // - randomness
+        // - parameter
+        // - domain separator: this is a message hash tweak
+        // - epoch
+        // - message
         let combined: Vec<u8> = randomness
             .iter()
             .chain(parameter.iter())
