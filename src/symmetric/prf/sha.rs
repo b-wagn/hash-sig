@@ -34,12 +34,12 @@ where
         let hasher = Keccak256Hash;
 
         // Collect all input bytes
-        // - Domain separator
-        // - Another domain separator for distinguishing the two types of elements
+        // - domain separator
+        // - another domain separator for distinguishing the two types of elements
         // that we generate: domain elements and randomness
-        // - Key
-        // - Epoch
-        // - Index
+        // - key
+        // - epoch
+        // - index
         let combined: Vec<u8> = PRF_DOMAIN_SEP
             .iter()
             .chain(PRF_DOMAIN_SEP_DOMAIN_ELEMENT.iter())
@@ -65,13 +65,13 @@ where
         let hasher = Keccak256Hash;
 
         // Collect all input bytes
-        // - Domain separator
-        // - Another domain separator for distinguishing the two types of elements
+        // - domain separator
+        // - another domain separator for distinguishing the two types of elements
         // that we generate: domain elements and randomness
-        // - Key
-        // - Epoch
-        // - Message
-        // - Counter
+        // - key
+        // - epoch
+        // - message
+        // - counter
         let combined: Vec<u8> = PRF_DOMAIN_SEP
             .iter()
             .chain(PRF_DOMAIN_SEP_RANDOMNESS.iter())
