@@ -682,6 +682,8 @@ pub type PoseidonTweak44 = PoseidonTweakHash<4, 4, 3, 9, 128>;
 pub type PoseidonTweak37 = PoseidonTweakHash<3, 7, 3, 9, 128>;
 #[cfg(test)]
 pub type PoseidonTweakW1L5 = PoseidonTweakHash<5, 7, 2, 9, 163>;
+#[cfg(test)]
+pub type PoseidonTweakWinternitz = PoseidonTweakHash<5, 7, 2, 9, 171>;
 
 #[cfg(test)]
 mod tests {

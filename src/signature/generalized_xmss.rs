@@ -545,7 +545,10 @@ mod tests {
                 sha::{ShaMessageHash, ShaMessageHash192x3},
             },
             prf::{sha::ShaPRF, shake_to_field::ShakePRFtoF},
-            tweak_hash::{poseidon::PoseidonTweakW1L5, sha::ShaTweak192192},
+            tweak_hash::{
+                poseidon::{PoseidonTweakW1L5, PoseidonTweakWinternitz},
+                sha::ShaTweak192192,
+            },
         },
     };
 
@@ -575,7 +578,7 @@ mod tests {
     pub fn test_winternitz_poseidon() {
         // Note: do not use these parameters, they are just for testing
         type PRF = ShakePRFtoF<7, 5>;
-        type TH = PoseidonTweakW1L5;
+        type TH = PoseidonTweakWinternitz; // 171 chains for Winternitz (163 message + 8 checksum)
         type MH = PoseidonMessageHashW1;
         const CHUNK_SIZE: usize = 1;
         const _BASE: usize = 2;
