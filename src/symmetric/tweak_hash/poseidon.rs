@@ -225,7 +225,7 @@ where
     let input = std::array::from_fn::<_, 24, _>(|_| {
         let digit = (acc % F::ORDER_U64 as u128) as u64;
         acc /= F::ORDER_U64 as u128;
-        A::from(F::from_u64(digit))
+        A::from_u64(digit)
     });
 
     poseidon_compress::<A, _, WIDTH, OUT_LEN>(perm, &input)
