@@ -50,7 +50,7 @@ where
         // Setup hasher
         let hasher = Keccak256Hash;
 
-        // Collect all input bytes
+        // Collect all input bytes in the following order
         // - randomness
         // - parameter
         // - domain separator: this is a message hash tweak
