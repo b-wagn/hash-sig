@@ -33,7 +33,7 @@ where
         // Setup hasher
         let hasher = Keccak256Hash;
 
-        // Collect all input bytes
+        // Collect all input bytes in the following order
         // - domain separator
         // - another domain separator for distinguishing the two types of elements
         // that we generate: domain elements and randomness
