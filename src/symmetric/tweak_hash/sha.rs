@@ -105,7 +105,7 @@ where
         // Setup hasher
         let hasher = Keccak256Hash;
 
-        // Collect all input bytes
+        // Collect all input bytes in the following order
         // - parameter
         // - tweak
         // - message to be hashed
