@@ -159,7 +159,7 @@ where
                 .collect();
 
             let iteration_pos_output =
-                poseidon_compress::<_, 24, POS_OUTPUT_LEN_PER_INV_FE>(&perm, &combined_input);
+                poseidon_compress::<F, _, 24, POS_OUTPUT_LEN_PER_INV_FE>(&perm, &combined_input);
 
             pos_outputs[i * POS_OUTPUT_LEN_PER_INV_FE..(i + 1) * POS_OUTPUT_LEN_PER_INV_FE]
                 .copy_from_slice(&iteration_pos_output);

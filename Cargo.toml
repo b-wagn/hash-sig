@@ -39,10 +39,10 @@ dashmap = "6.1.0"
 serde = { version = "1.0", features = ["derive", "alloc"] }
 thiserror = "2.0"
 
-p3-field = { git = "https://github.com/Plonky3/Plonky3.git", rev = "2117e4b" }
-p3-baby-bear = { git = "https://github.com/Plonky3/Plonky3.git", rev = "2117e4b" }
-p3-koala-bear = { git = "https://github.com/Plonky3/Plonky3.git", rev = "2117e4b" }
-p3-symmetric = { git = "https://github.com/Plonky3/Plonky3.git", rev = "2117e4b" }
+p3-field = { git = "https://github.com/Plonky3/Plonky3.git", rev = "a33a312" }
+p3-baby-bear = { git = "https://github.com/Plonky3/Plonky3.git", rev = "a33a312" }
+p3-koala-bear = { git = "https://github.com/Plonky3/Plonky3.git", rev = "a33a312" }
+p3-symmetric = { git = "https://github.com/Plonky3/Plonky3.git", rev = "a33a312" }
 
 [dev-dependencies]
 criterion = "0.7"

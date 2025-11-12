@@ -164,7 +164,7 @@ where
             .copied()
             .collect();
 
-        let hash_fe = poseidon_compress::<_, 24, HASH_LEN_FE>(&perm, &combined_input_vec);
+        let hash_fe = poseidon_compress::<F, _, 24, HASH_LEN_FE>(&perm, &combined_input_vec);
 
         // decode field elements into chunks and return them
         decode_to_chunks::<DIMENSION, BASE, HASH_LEN_FE>(&hash_fe).to_vec()
