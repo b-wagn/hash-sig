@@ -4,6 +4,8 @@ This repository contains a *prototypical* Rust implementation of (synchronized) 
 
 *Note: Rust version >= 1.87 is required.*
 
+*Note: As of November 2025, this repository is no longer actively maintained. Its status is preserved, and the development moved to [this repository](https://github.com/leanEthereum/leanSig).*
+
 ## Disclaimers
 
 The code has *not been audited and is not meant to be used in production*. It is a playground to explore and benchmark these signatures. Use it at your own risk.
