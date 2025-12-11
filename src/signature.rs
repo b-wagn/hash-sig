@@ -226,11 +226,11 @@ mod test_templates {
         // The epoch must be in the activation interval
         assert!(
             activation_epoch as u32 <= epoch
-                && epoch < (activation_epoch + num_active_epochs) as u32,
+                && (epoch as u64) < (activation_epoch + num_active_epochs) as u64,
             "Did not even try signing, epoch {:?} outside of activation interval {:?},{:?}",
             epoch,
             activation_epoch,
-            num_active_epochs
+            (activation_epoch + num_active_epochs) as u32
         );
 
         let mut rng = rand::rng();
