@@ -2,14 +2,11 @@ use crate::F;
 
 use super::Pseudorandom;
 use p3_field::PrimeCharacteristicRing;
-use p3_field::PrimeField64;
 use serde::{Serialize, de::DeserializeOwned};
 use sha3::{
     Shake128,
     digest::{ExtendableOutput, Update, XofReader},
 };
-
-use num_bigint::BigUint;
 
 // Number of pseudorandom bytes to generate one pseudorandom field element
 const PRF_BYTES_PER_FE: usize = 16;
