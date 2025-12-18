@@ -2,17 +2,14 @@ use crate::F;
 
 use super::Pseudorandom;
 use p3_field::PrimeCharacteristicRing;
-use p3_field::PrimeField64;
 use serde::{Serialize, de::DeserializeOwned};
 use sha3::{
     Shake128,
     digest::{ExtendableOutput, Update, XofReader},
 };
 
-use num_bigint::BigUint;
-
 // Number of pseudorandom bytes to generate one pseudorandom field element
-const PRF_BYTES_PER_FE: usize = 8;
+const PRF_BYTES_PER_FE: usize = 16;
 
 const KEY_LENGTH: usize = 32; // 32 bytes
 const PRF_DOMAIN_SEP: [u8; 16] = [
@@ -62,19 +59,16 @@ where
         // Finalize the hash process and create an XofReader
         let mut xof_reader = hasher.finalize_xof();
 
-        // Buffer to store the output
-        let mut prf_output = vec![0u8; PRF_BYTES_PER_FE * DOMAIN_LENGTH_FE];
-
-        // Read the extended output into the buffer
-        xof_reader.read(&mut prf_output);
-
         // Mapping bytes to field elements
-        std::array::from_fn(|i| {
-            let chunk_start = i * PRF_BYTES_PER_FE;
-            let chunk_end = chunk_start + PRF_BYTES_PER_FE;
-            let integer_value =
-                BigUint::from_bytes_be(&prf_output[chunk_start..chunk_end]) % F::ORDER_U64;
-            F::from_u64(integer_value.try_into().unwrap())
+        std::array::from_fn(|_| {
+            // Buffer to store the output
+            let mut buf = [0u8; PRF_BYTES_PER_FE];
+
+            // Read the extended output into the buffer
+            xof_reader.read(&mut buf);
+
+            // Mapping bytes to a field element
+            F::from_u128(u128::from_be_bytes(buf))
         })
     }
 
@@ -109,19 +103,16 @@ where
         // Finalize the hash process and create an XofReader
         let mut xof_reader = hasher.finalize_xof();
 
-        // Buffer to store the output
-        let mut prf_output = vec![0u8; PRF_BYTES_PER_FE * DOMAIN_LENGTH_FE];
-
-        // Read the extended output into the buffer
-        xof_reader.read(&mut prf_output);
-
         // Mapping bytes to field elements
-        std::array::from_fn(|i| {
-            let chunk_start = i * PRF_BYTES_PER_FE;
-            let chunk_end = chunk_start + PRF_BYTES_PER_FE;
-            let integer_value =
-                BigUint::from_bytes_be(&prf_output[chunk_start..chunk_end]) % F::ORDER_U64;
-            F::from_u64(integer_value.try_into().unwrap())
+        std::array::from_fn(|_| {
+            // Buffer to store the output
+            let mut buf = [0u8; PRF_BYTES_PER_FE];
+
+            // Read the extended output into the buffer
+            xof_reader.read(&mut buf);
+
+            // Mapping bytes to a field element
+            F::from_u128(u128::from_be_bytes(buf))
         })
     }
 
